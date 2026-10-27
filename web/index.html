@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>1846 · 自战实验室</title><link rel="stylesheet" href="/style.css"></head>
+<body>
+<header><a class="brand" href="/" aria-label="1846 自战实验室首页"><span class="mark">Ⅱ</span><div><strong>1846</strong><span>自战实验室</span></div></a><div class="header-note">THE RACE FOR THE MIDWEST <span>LOCAL ARENA / 01</span></div><span class="local"><i></i>本机运行</span></header>
+<div class="layout">
+<aside>
+  <div class="section-caption">CONTROL ROOM <span>01</span></div>
+  <h1>让铁路<br>自己开局。</h1>
+  <p class="intro">同一套 1846 规则，不同的经营选择。<br>从一场完整自战开始。</p>
+  <form id="setup">
+    <div class="field-row"><label>玩家人数<select id="players"><option value="3">3 人</option><option value="4">4 人</option><option value="5">5 人</option></select></label><label>开局种子<input id="seed" type="number" min="0" max="2000000000" value="42" required></label></div>
+    <div class="label-row"><span>席位 / 策略</span><span class="muted">可独立设置</span></div><div id="seats"></div>
+    <details class="advanced"><summary>本地模型与批量运行</summary><p>LM Studio 是可选决策器。先在其中开启本地服务并加载模型。</p><button type="button" id="detect" class="secondary full">检测 LM Studio</button><label>可用模型<select id="model"><option value="">尚未检测</option></select></label><p id="lmstatus" class="muted">规则机器人可以直接运行。</p><label>批次局数<input id="count" type="number" min="1" max="100" value="3"></label><button type="button" id="batchStart" class="secondary full">连续自战 · 轮换席位</button></details>
+    <button class="primary full" id="start" type="submit">开始一场自战 <span>↗</span></button>
+  </form>
+  <div id="notice" role="status" aria-live="polite"></div>
+  <div id="batchStatus"></div>
+  <div class="history-heading"><span class="section-caption">对局档案</span><button id="refresh" class="icon-button" aria-label="刷新对局档案">↻</button></div>
+  <div id="history" class="history"></div>
+  <p class="footnote">规则：18xx.games 开源引擎<br>当前 AI：启发式基线 / 可选本地语言模型<br>尚未进行神经网络自战训练</p>
+</aside>
+<main>
+  <section class="arena-top"><div><div class="section-caption">LIVE OBSERVATORY</div><h2 id="title">中西部铁路，等待发车</h2><p id="subtitle">选择席位策略，启动第一场 AI 自战。</p></div><span id="status" class="badge">准备就绪</span></section>
+  <div class="stats"><div><span>当前轮次</span><strong id="round">—</strong></div><div><span>时代</span><strong id="phase">I — IV</strong></div><div><span>银行余额</span><strong id="bank">—</strong></div><div><span>已执行行动</span><strong id="actions">0</strong></div></div>
+  <section class="board-panel"><div class="panel-heading"><div><span class="section-caption">铁路版图</span><span class="map-note">线路与车站随对局更新</span></div><div class="board-buttons"><select id="companyFilter" aria-label="高亮公司车站"><option value="">全部公司</option></select><button id="mapZoom" class="secondary">放大地图</button></div></div><div id="mapContainer"><svg id="map" role="img" aria-label="1846 铁路地图"></svg><div id="empty"><span>1846</span><p>一块版图，三至五种选择。</p><small>启动后展示真实规则引擎中的铺轨、升级与车站。</small></div></div><div class="legend"><span><i style="background:#e7c75d"></i>黄瓦</span><span><i style="background:#8ba285"></i>绿瓦</span><span><i style="background:#b58c70"></i>棕瓦</span><span><i style="background:#9b9fa4"></i>灰瓦</span><span><i style="background:#c47a68"></i>外域</span><span class="legend-last" id="hexInfo">点击六角格查看详情</span></div><div class="stockbar"><span id="phaseNote" class="map-note"></span><div id="tileStock" class="tile-stock"></div></div></section>
+  <div class="playback"><div class="transport"><button id="first" class="icon-button" aria-label="回到开局">|‹</button><button id="back" class="icon-button" aria-label="上一步">‹</button><button id="play" class="icon-button" aria-label="播放回放">▶</button><button id="next" class="icon-button" aria-label="下一步">›</button></div><input id="timeline" aria-label="对局回放位置" type="range" min="0" max="0" value="0"><span id="frameLabel">0 / 0</span><button id="live" class="secondary">回到最新</button><button id="pause" class="secondary" disabled>暂停自战</button><button id="step" class="secondary" disabled>执行一步</button><button id="stop" class="secondary danger" disabled>停止</button></div>
+  <div class="bottom-grid"><section class="panel"><div class="panel-heading"><span class="section-caption">玩家资产</span><span class="muted">现金 + 股票市值</span></div><div id="playerCards" class="player-cards"><p class="placeholder">开局后显示玩家持股与资产。</p></div></section><section class="panel decision-panel"><div class="panel-heading"><span class="section-caption">当前决策</span><span id="candidateCount" class="muted">—</span></div><div id="decision"><p class="placeholder">在这里查看机器人选择了什么，以及使用的决策依据。</p></div></section></div>
+  <section class="panel train-panel">
+    <div class="panel-heading"><span class="section-caption">自学习训练</span><span id="trainState" class="muted">—</span></div>
+    <div class="train-grid">
+      <div><span>自战场次</span><strong id="trainGames">0</strong></div>
+      <div><span>决策样本</span><strong id="trainDecisions">0</strong></div>
+      <div><span>训练步数</span><strong id="trainSteps">0</strong></div>
+      <div><span>策略损失</span><strong id="trainLoss">—</strong></div>
+      <div><span>对启发式胜率</span><strong id="trainWinrate">—</strong></div>
+    </div>
+    <div class="train-controls">
+      <label>并发进程<input id="trainWorkers" type="number" min="1" max="12" value="4"></label>
+      <label>训练时长（分）<input id="trainMinutes" type="number" min="1" max="720" value="30"></label>
+      <button id="trainStart" class="primary">开始自学习</button>
+      <button id="trainStop" class="secondary" disabled>停止</button>
+    </div>
+    <p id="trainNote" class="muted">自战记录写入 train\data，模型写入 train\checkpoints\latest.pt；并发进程数不要超过物理核心数。</p>
+  </section>
+  <section class="panel companies"><div class="panel-heading"><span class="section-caption">铁路公司</span><span class="muted">金库 / 股价 / 列车组合 / 车站</span></div><div class="table-wrap"><table><thead><tr><th>公司</th><th>总裁</th><th>金库</th><th>股价</th><th>列车组合</th><th>车站</th><th>私营 / 奖励</th></tr></thead><tbody id="companies"><tr><td colspan="6" class="placeholder">等待公司开办</td></tr></tbody></table></div></section>
+  <section class="panel log-panel"><div class="panel-heading"><span class="section-caption">行动记录</span><div id="downloads"></div></div><div id="logs"><p class="placeholder">对局行动会自动保存在本机，可供回放和后续训练使用。</p></div></section>
+  <footer>1846 SELF-PLAY LAB <span>平台实现 © 18xx.games contributors · 游戏设计 Thomas Lehmann · 规则引擎许可见使用说明</span></footer>
+</main></div><script src="/app.js"></script>
+</body></html>
