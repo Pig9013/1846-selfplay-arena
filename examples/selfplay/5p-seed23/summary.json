@@ -1,0 +1,34 @@
+{
+  "id": "2899ee72677e",
+  "config": {
+    "players": 5,
+    "seed": 23,
+    "strategies": [
+      "balanced",
+      "growth",
+      "income",
+      "balanced",
+      "growth"
+    ],
+    "model": "",
+    "max_actions": 3000
+  },
+  "status": "complete",
+  "created": 1793125931.4665544,
+  "frames": 590,
+  "action_count": 589,
+  "error": null,
+  "version": "0.1.0",
+  "phase": "IV",
+  "turn": 7,
+  "result": {
+    "3": 5424,
+    "4": 4993,
+    "2": 4232,
+    "1": 3821,
+    "5": 2227
+  },
+  "end_reason": "bank",
+  "finished_at": 1793125953.9854128,
+  "elapsed": 22.52
+}

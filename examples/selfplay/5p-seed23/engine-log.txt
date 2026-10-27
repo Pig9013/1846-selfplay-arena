@@ -1,0 +1,1068 @@
+-- Phase I (Operating Rounds: 2 | Train Limit: 4 | Available Tiles: Yellow) --
+Removing Ohio & Indiana
+Removing Boomtown
+Privates in the game: Big 4 (Minor), Chicago and Western Indiana, Lake Shore Line, Little Miami, Mail Contract, Meat Packing Company, Michigan Central, Michigan Southern (Minor), Steamboat Company, Tunnel Blasting Company
+Corporations in the game: B&O, C&O, ERIE, GT, IC, NYC, PRR
+AI 5 chooses a company
+AI 4 chooses a company
+AI 3 chooses a company
+AI 2 chooses a company
+AI 1 chooses a company
+AI 5 chooses a company
+AI 4 chooses a company
+AI 3 chooses a company
+AI 2 chooses a company
+AI 1 chooses a company
+AI 5 buys Tunnel Blasting Company for $60
+AI 5 buys Michigan Central for $40
+AI 4 buys Meat Packing Company for $60
+AI 4 buys Michigan Southern (Minor) for $140
+AI 3 buys Lake Shore Line for $40
+AI 3 buys Steamboat Company for $40
+AI 2 buys Little Miami for $40
+AI 2 buys Big 4 (Minor) for $100
+AI 1 buys Chicago and Western Indiana for $60
+AI 1 buys Mail Contract for $80
+AI 1 has priority deal
+-- Stock Round 1 --
+AI 1 pars C&O at $90
+AI 1 buys a 20% share of C&O from the Treasury for $180
+AI 1 becomes the president of C&O
+C&O floats
+C&O places a token on I15
+AI 2 pars GT at $90
+AI 2 buys a 20% share of GT from the Treasury for $180
+AI 2 becomes the president of GT
+GT floats
+GT places a token on B16
+AI 3 pars ERIE at $100
+AI 3 buys a 20% share of ERIE from the Treasury for $200
+AI 3 becomes the president of ERIE
+ERIE floats
+ERIE places a token on E21
+AI 4 pars B&O at $70
+AI 4 buys a 20% share of B&O from the Treasury for $140
+AI 4 becomes the president of B&O
+B&O floats
+B&O places a token on G19
+AI 5 pars PRR at $90
+AI 5 buys a 20% share of PRR from the Treasury for $180
+AI 5 becomes the president of PRR
+PRR floats
+PRR places a token on F20
+AI 1 buys a 10% share of B&O from the Treasury for $70
+AI 2 buys a 10% share of B&O from the Treasury for $70
+AI 3 buys a 10% share of ERIE from the Treasury for $100
+AI 4 has no valid actions and passes
+AI 5 buys a 10% share of PRR from the Treasury for $90
+AI 1 has no valid actions and passes
+AI 2 has no valid actions and passes
+AI 3 passes
+AI 4 has no valid actions and passes
+AI 5 passes
+AI 1 has priority deal
+-- Operating Round 1.1 (of 2) --
+AI 1 collects $10 from Chicago and Western Indiana
+AI 2 collects $15 from Little Miami
+AI 3 collects $10 from Steamboat Company
+AI 3 collects $15 from Lake Shore Line
+AI 4 collects $15 from Meat Packing Company
+AI 5 collects $15 from Michigan Central
+AI 5 collects $20 from Tunnel Blasting Company
+Steamboat Company is not assigned to any hex
+Steamboat Company is not assigned to any corporation or minor
+AI 4 operates MS
+MS spends $60 and lays tile #6 with rotation 4 on B16 (Port Huron)
+MS runs a 2 train for $60: C15-B16
+MS withholds $30
+AI 4 receives $30
+MS skips buy/use companies
+AI 2 operates BIG4
+BIG4 spends $20 and lays tile #5 with rotation 0 on G9 (Indianapolis)
+BIG4 spends $20 and lays tile #6 with rotation 4 on G7 (Terre Haute)
+BIG4 runs a 2 train for $40: G9-G7
+BIG4 withholds $20
+AI 2 receives $20
+BIG4 skips buy/use companies
+AI 4 operates B&O
+B&O places a token on H12 (Cincinnati)  for $100
+B&O spends $20 and lays tile #293 with rotation 0 on H12 (Cincinnati)
+B&O spends $20 and lays tile #6 with rotation 4 on G13 (Dayton)
+B&O skips run routes
+B&O does not run
+B&O's share price moves left from $70 to $60
+B&O buys a 2 train for $80 from The Depot
+B&O passes buy trains
+B&O buys Michigan Southern (Minor) from AI 4 for $1
+B&O receives $30, a 2 train, and a token on C15
+B&O buys Meat Packing Company from AI 4 for $1
+Meat Packing Company is assigned to B&O
+Meat Packing Company is not assigned to a hex
+B&O passes buy/use companies
+AI 1 operates C&O
+C&O spends $60 and lays tile #9 with rotation 5 on H14
+C&O spends $40 and lays tile #8 with rotation 0 on H16
+C&O skips run routes
+C&O does not run
+C&O's share price moves left from $90 to $80
+C&O buys a 2 train for $80 from The Depot
+C&O skips buy/use companies
+AI 2 operates GT
+GT spends $20 and lays tile #9 with rotation 1 on C13
+GT spends $20 and lays tile #9 with rotation 4 on C11
+GT passes place a token or lay track
+GT skips run routes
+GT does not run
+GT's share price moves left from $90 to $80
+GT buys a 2 train for $80 from The Depot
+GT passes buy trains
+GT buys Big 4 (Minor) from AI 2 for $1
+GT receives $20, a 2 train, and a token on G9
+GT buys Little Miami from AI 2 for $1
+GT passes buy/use companies
+AI 5 operates PRR
+PRR places a token on E11 (Fort Wayne)  for $60
+PRR spends $60 and lays tile #7 with rotation 4 on E19
+PRR spends $20 and lays tile #57 with rotation 1 on E11 (Fort Wayne)
+PRR skips run routes
+PRR does not run
+PRR's share price moves left from $90 to $80
+PRR buys a 2 train for $80 from The Depot
+PRR passes buy trains
+PRR buys Tunnel Blasting Company from AI 5 for $1
+PRR buys Michigan Central from AI 5 for $1
+PRR passes buy/use companies
+AI 3 operates ERIE
+ERIE passes place a token or lay track
+ERIE skips run routes
+ERIE does not run
+ERIE's share price moves left from $100 to $90
+ERIE buys a 2 train for $80 from The Depot
+ERIE buys a 2 train for $80 from The Depot
+ERIE passes buy trains
+ERIE buys Steamboat Company from AI 3 for $1
+Steamboat Company is assigned to ERIE
+Steamboat Company is not assigned to a hex
+ERIE buys Lake Shore Line from AI 3 for $1
+ERIE passes buy/use companies
+-- Operating Round 1.2 (of 2) --
+AI 1 collects $10 from Chicago and Western Indiana
+ERIE collects $10 from Steamboat Company
+ERIE collects $15 from Lake Shore Line
+GT collects $15 from Little Miami
+PRR collects $15 from Michigan Central
+PRR collects $20 from Tunnel Blasting Company
+B&O collects $15 from Meat Packing Company
+AI 3 operates ERIE
+ERIE passes place a token or lay track
+ERIE runs a 2 train for $30: E21-E23
+ERIE runs a 2 train for $20: E21-F20
+ERIE pays out $50 = $5.0 per share ($35 to ERIE, $15 to AI 3)
+ERIE passes buy trains
+ERIE passes buy/use companies
+AI 1 operates C&O
+C&O passes place a token or lay track
+C&O runs a 2 train for $40: I15-I17
+C&O runs for $40 and pays half
+C&O withholds $20
+C&O pays out $20 = $2.0 per share ($16 to C&O, $4 to AI 1)
+C&O's share price moves left from $80 to $70
+C&O passes buy trains
+C&O buys Chicago and Western Indiana from AI 1 for $1
+C&O buys Mail Contract from AI 1 for $1
+C&O passes buy/use companies
+AI 2 operates GT
+GT spends $20 and lays tile #9 with rotation 3 on H6
+GT spends $20 and lays tile #9 with rotation 3 on J4
+GT passes place a token or lay track
+GT runs a 2 train for $60: B16-C15
+GT runs a 2 train for $50: B16-B18
+GT withholds $110
+GT's share price moves left from $80 to $70
+GT passes buy trains
+GT passes buy/use companies
+AI 5 operates PRR
+PRR receives a discount of $20 from Tunnel Blasting Company
+PRR spends $20 and lays tile #7 with rotation 4 on F18
+PRR spends $20 and lays tile #7 with rotation 0 on E13
+PRR runs a 2 train for $40: F20-G21
+PRR withholds $40
+PRR's share price moves left from $80 to $70
+PRR buys a 2 train for $80 from The Depot
+PRR passes buy trains
+PRR passes buy/use companies
+AI 4 operates B&O
+B&O spends $20 and lays tile #6 with rotation 5 on G15 (Columbus)
+B&O spends $60 and lays tile #9 with rotation 0 on I11
+B&O passes place a token or lay track
+B&O runs a 2 train for $90: H12-J10
+B&O runs a 2 train for $60: H12-G13
+B&O runs for $150 and pays half
+B&O withholds $70
+B&O pays out $80 = $8.0 per share ($48 to B&O, $16 to AI 4, $8 to AI 1, $8 to AI 2)
+B&O's share price moves right from $60 to $70
+B&O passes buy trains
+B&O passes buy/use companies
+-- Stock Round 2 --
+AI 1 passes
+AI 2 passes
+AI 3 passes
+AI 4 buys a 10% share of B&O from the Treasury for $70
+AI 5 passes
+AI 1 passes
+AI 2 passes
+AI 3 passes
+AI 4 passes
+AI 5 has priority deal
+-- Operating Round 2.1 (of 2) --
+ERIE collects $10 from Steamboat Company
+ERIE collects $15 from Lake Shore Line
+C&O collects $10 from Chicago and Western Indiana
+GT collects $15 from Little Miami
+PRR collects $15 from Michigan Central
+PRR collects $20 from Tunnel Blasting Company
+B&O collects $15 from Meat Packing Company
+AI 3 operates ERIE
+ERIE passes place a token or lay track
+ERIE runs a 2 train for $30: E21-E23
+ERIE runs a 2 train for $20: E21-F20
+ERIE pays out $50 = $5.0 per share ($35 to ERIE, $15 to AI 3)
+ERIE passes buy trains
+ERIE passes buy/use companies
+AI 1 operates C&O
+C&O passes place a token or lay track
+C&O runs a 2 train for $60: I15-I17 + Mail Contract
+C&O runs for $60 and pays half
+C&O withholds $30
+C&O pays out $30 = $3.0 per share ($24 to C&O, $6 to AI 1)
+C&O's share price moves left from $70 to $60
+C&O passes buy trains
+C&O passes buy/use companies
+AI 2 operates GT
+GT spends $20 and lays tile #5 with rotation 3 on C9 (South Bend)
+GT spends $20 and lays tile #9 with rotation 4 on I3
+GT passes place a token or lay track
+GT runs a 2 train for $60: B16-C15
+GT runs a 2 train for $50: B16-B18
+GT withholds $110
+GT's share price moves left from $70 to $60
+GT passes buy trains
+GT passes buy/use companies
+AI 5 operates PRR
+PRR spends $20 and lays tile #7 with rotation 3 on E9
+PRR passes place a token or lay track
+PRR runs a 2 train for $40: F20-G21
+PRR runs a 2 train for $40: F20-F22
+PRR withholds $80
+PRR's share price moves left from $70 to $60
+PRR passes buy trains
+PRR passes buy/use companies
+AI 4 operates B&O
+B&O spends $20 and lays tile #7 with rotation 0 on B10
+B&O passes place a token or lay track
+B&O runs a 2 train for $90: H12-J10
+B&O runs a 2 train for $60: H12-G13
+B&O runs for $150 and pays half
+B&O withholds $70
+B&O pays out $80 = $8.0 per share ($40 to B&O, $24 to AI 4, $8 to AI 1, $8 to AI 2)
+B&O's share price moves right from $70 to $80
+B&O buys a 3/5 train for $160 from The Depot
+-- Phase II (Operating Rounds: 2 | Train Limit: 4 | Available Tiles: Yellow, Green) --
+B&O passes buy trains
+B&O passes buy/use companies
+-- Operating Round 2.2 (of 2) --
+ERIE collects $10 from Steamboat Company
+ERIE collects $15 from Lake Shore Line
+B&O collects $15 from Meat Packing Company
+C&O collects $10 from Chicago and Western Indiana
+GT collects $15 from Little Miami
+PRR collects $15 from Michigan Central
+PRR collects $20 from Tunnel Blasting Company
+AI 3 operates ERIE
+ERIE spends $20 and lays tile #619 with rotation 3 on D20 (Erie)
+ERIE places a token on D20 (Erie)  for $40
+ERIE spends $20 and lays tile #8 with rotation 4 on D18
+ERIE runs a 2 train for $60: D20-C21
+ERIE runs a 2 train for $40: D20-E21
+ERIE pays out $100 = $10.0 per share ($70 to ERIE, $30 to AI 3)
+ERIE's share price moves right from $90 to $100
+ERIE passes buy trains
+ERIE passes buy/use companies
+AI 4 operates B&O
+B&O spends $100 and lays tile #294 with rotation 0 on C15 (Detroit)
+B&O spends $20 and lays tile #57 with rotation 0 on D14 (Toledo)
+B&O passes place a token or lay track
+B&O runs a 2 train for $90: H12-J10
+B&O runs a 2 train for $90: C15-C17
+B&O runs a 3/5 train for $110: C15-C9-B8
+B&O runs for $290 and pays half
+B&O withholds $140
+B&O pays out $150 = $15.0 per share ($75 to B&O, $45 to AI 4, $15 to AI 1, $15 to AI 2)
+B&O's share price moves right from $80 to $90
+B&O passes buy trains
+B&O passes buy/use companies
+AI 1 operates C&O
+C&O spends $20 and lays tile #619 with rotation 2 on G13 (Dayton)
+C&O spends $20 and lays tile #9 with rotation 5 on F12
+C&O passes place a token or lay track
+C&O runs a 2 train for $70: I15-G13 + Mail Contract
+C&O runs for $70 and pays half
+C&O withholds $30
+C&O pays out $40 = $4.0 per share ($32 to C&O, $8 to AI 1)
+C&O passes buy trains
+C&O passes buy/use companies
+AI 2 operates GT
+GT spends $20 and lays tile #619 with rotation 4 on B16 (Port Huron)
+GT spends $20 and lays tile #7 with rotation 3 on B14
+GT passes place a token or lay track
+GT runs a 2 train for $80: B16-C15
+GT runs a 2 train for $60: B16-B18
+GT withholds $140
+GT's share price moves left from $60 to $50
+GT buys a 3/5 train for $160 from The Depot
+GT passes buy trains
+GT passes buy/use companies
+AI 5 operates PRR
+PRR receives a discount of $20 from Tunnel Blasting Company
+PRR spends $60 and lays tile #14 with rotation 1 on G19 (Wheeling)
+PRR receives a discount of $20 from Tunnel Blasting Company
+PRR spends $40 and lays tile #7 with rotation 3 on G17
+PRR passes place a token or lay track
+PRR runs a 2 train for $40: F20-G21
+PRR runs a 2 train for $40: F20-F22
+PRR withholds $80
+PRR's share price moves left from $60 to $50
+PRR passes buy trains
+PRR passes buy/use companies
+-- Stock Round 3 --
+AI 5 buys a 10% share of PRR from the Treasury for $50
+AI 1 buys a 10% share of C&O from the Treasury for $60
+AI 2 buys a 10% share of GT from the Treasury for $50
+AI 3 buys a 10% share of ERIE from the Treasury for $100
+AI 4 buys a 10% share of B&O from the Treasury for $90
+AI 5 passes
+AI 1 passes
+AI 2 passes
+AI 3 passes
+AI 4 passes
+AI 5 has priority deal
+-- Operating Round 3.1 (of 2) --
+ERIE collects $10 from Steamboat Company
+ERIE collects $15 from Lake Shore Line
+B&O collects $15 from Meat Packing Company
+C&O collects $10 from Chicago and Western Indiana
+GT collects $15 from Little Miami
+PRR collects $15 from Michigan Central
+PRR collects $20 from Tunnel Blasting Company
+AI 3 operates ERIE
+ERIE spends $20 and lays tile #21 with rotation 1 on E19
+ERIE spends $20 and lays tile #291 with rotation 3 on E17 (Cleveland)
+ERIE places a token on E17 (Cleveland)  for $80
+ERIE runs a 2 train for $70: E17-D20
+ERIE runs a 2 train for $70: E17-D20
+ERIE pays out $140 = $14.0 per share ($84 to ERIE, $56 to AI 3)
+ERIE's share price moves right from $100 to $112
+ERIE buys a 3/5 train for $160 from The Depot
+ERIE passes buy trains
+ERIE passes buy/use companies
+AI 4 operates B&O
+B&O spends $20 and lays tile #22 with rotation 2 on F18
+B&O places a token on C9 (South Bend)  for $80
+B&O passes place a token or lay track
+B&O runs a 2 train for $90: H12-J10
+B&O runs a 2 train for $90: C15-C17
+B&O runs a 3/5 train for $120: B8-(C9)-C15-B16-(B18)
+B&O runs for $300 and pays half
+B&O withholds $150
+B&O pays out $150 = $15.0 per share ($60 to AI 4, $60 to B&O, $15 to AI 1, $15 to AI 2)
+B&O's share price moves right from $90 to $100
+B&O buys a 3/5 train for $160 from The Depot
+B&O passes buy/use companies
+AI 1 operates C&O
+C&O spends $20 and lays tile #15 with rotation 4 on E11 (Fort Wayne)
+C&O spends $20 and lays tile #9 with rotation 0 on F10
+C&O passes place a token or lay track
+C&O runs a 2 train for $70: I15-G13 + Mail Contract
+C&O runs for $70 and pays half
+C&O withholds $30
+C&O pays out $40 = $4.0 per share ($28 to C&O, $12 to AI 1)
+C&O buys a 3/5 train for $160 from The Depot
+C&O passes buy trains
+C&O passes buy/use companies
+AI 2 operates GT
+GT spends $20 and lays tile #14 with rotation 0 on G9 (Indianapolis)
+GT spends $20 and lays tile #8 with rotation 5 on G11
+GT passes place a token or lay track
+GT runs a 2 train for $80: B16-C15
+GT runs a 2 train for $60: B16-B18
+GT runs a 3/5 train for $110: I1-(I5)-(G7)-G9-E11
+GT withholds $250
+GT's share price moves left from $50 to $40
+GT buys a 3/5 train for $160 from The Depot
+GT passes buy/use companies
+AI 5 operates PRR
+PRR spends $20 and lays tile #295 with rotation 0 on H12 (Cincinnati)
+PRR spends $20 and lays tile #7 with rotation 2 on H8
+PRR passes place a token or lay track
+PRR runs a 2 train for $60: E11-G9
+PRR runs a 2 train for $60: E11-G13
+PRR withholds $120
+PRR's share price moves left from $50 to $40
+PRR passes buy trains
+PRR passes buy/use companies
+-- Operating Round 3.2 (of 2) --
+ERIE collects $10 from Steamboat Company
+ERIE collects $15 from Lake Shore Line
+B&O collects $15 from Meat Packing Company
+C&O collects $10 from Chicago and Western Indiana
+GT collects $15 from Little Miami
+PRR collects $15 from Michigan Central
+PRR collects $20 from Tunnel Blasting Company
+AI 3 operates ERIE
+ERIE spends $20 and lays tile #295 with rotation 3 on E17 (Cleveland)
+ERIE spends $20 and lays tile #9 with rotation 0 on F16
+ERIE passes place a token or lay track
+ERIE runs a 2 train for $80: E17-G19
+ERIE runs a 2 train for $80: E17-D20
+ERIE runs a 3/5 train for $110: E17-D20-C21
+ERIE pays out $270 = $27.0 per share ($162 to ERIE, $108 to AI 3)
+ERIE's share price moves right from $112 to $137 (2 steps)
+ERIE passes buy trains
+ERIE passes buy/use companies
+AI 4 operates B&O
+B&O spends $20 and lays tile #15 with rotation 3 on G7 (Terre Haute)
+B&O places a token on G7 (Terre Haute)  for $80
+B&O spends $20 and lays tile #8 with rotation 2 on H10
+B&O runs a 2 train for $100: H12-J10
+B&O runs a 2 train for $80: G19-E17
+B&O runs a 3/5 train for $130: C17-C15-(C9)-B8
+B&O runs a 3/5 train for $130: H12-G9-(G7)-(I5)-I1
+B&O runs for $440 and pays half
+B&O withholds $220
+B&O pays out $220 = $22.0 per share ($88 to AI 4, $88 to B&O, $22 to AI 1, $22 to AI 2)
+B&O's share price moves right from $100 to $124 (2 steps)
+B&O passes buy/use companies
+AI 1 operates C&O
+C&O spends $20 and lays tile #14 with rotation 1 on G15 (Columbus)
+C&O spends $20 and lays tile #7 with rotation 5 on F8
+C&O passes place a token or lay track
+C&O runs a 2 train for $50: I15-G15
+C&O runs a 3/5 train for $170: J10-H12-(G13)-I15-(I17) + Mail Contract
+C&O runs for $220 and pays half
+C&O withholds $110
+C&O pays out $110 = $11.0 per share ($77 to C&O, $33 to AI 1)
+C&O's share price moves right from $60 to $70
+C&O passes buy trains
+C&O passes buy/use companies
+AI 2 operates GT
+GT spends $20 and lays tile #20 with rotation 2 on F12
+GT places a token on G7 (Terre Haute)  for $80
+GT spends $20 and lays tile #7 with rotation 5 on F14
+GT runs a 2 train for $80: B16-C15
+GT runs a 2 train for $60: B16-B18
+GT runs a 3/5 train for $130: I1-(I5)-G7-(G9)-H12
+GT runs a 3/5 train for $130: G9-(E11)-(G13)-H12-J10
+GT withholds $400
+GT's share price moves left from $40 to $30
+GT passes buy/use companies
+AI 5 operates PRR
+PRR spends $20 and lays tile #31 with rotation 1 on E13
+PRR places a token on G13 (Dayton)  for $80
+PRR spends $20 and lays tile #8 with rotation 0 on D10
+PRR runs a 2 train for $80: G13-H12
+PRR runs a 2 train for $60: E11-G9
+PRR withholds $140
+PRR's share price moves left from $40 to $30
+PRR passes buy trains
+PRR passes buy/use companies
+-- Stock Round 4 --
+AI 5 passes
+AI 1 buys a 10% share of C&O from the Treasury for $70
+AI 2 buys a 10% share of GT from the Treasury for $30
+AI 3 buys a 10% share of ERIE from the Treasury for $137
+AI 4 buys a 10% share of B&O from the Treasury for $124
+AI 5 passes
+AI 1 buys a 10% share of PRR from the Treasury for $30
+AI 2 buys a 10% share of GT from the Treasury for $30
+AI 3 buys a 10% share of PRR from the Treasury for $30
+AI 4 buys a 10% share of GT from the Treasury for $30
+AI 5 passes
+AI 1 passes
+AI 2 passes
+AI 3 passes
+AI 4 passes
+AI 5 has priority deal
+-- Operating Round 4.1 (of 2) --
+ERIE collects $10 from Steamboat Company
+ERIE collects $15 from Lake Shore Line
+B&O collects $15 from Meat Packing Company
+C&O collects $10 from Chicago and Western Indiana
+GT collects $15 from Little Miami
+PRR collects $15 from Michigan Central
+PRR collects $20 from Tunnel Blasting Company
+AI 3 operates ERIE
+ERIE spends $20 and lays tile #30 with rotation 3 on G17
+ERIE places a token on G13 (Dayton)  for $80
+ERIE passes place a token or lay track
+ERIE runs a 2 train for $80: E17-D20
+ERIE runs a 2 train for $80: E17-D20
+ERIE runs a 3/5 train for $150: E17-(G15)-(G13)-H12-J10
+ERIE pays out $310 = $31.0 per share ($155 to AI 3, $155 to ERIE)
+ERIE's share price moves right from $137 to $165 (2 steps)
+ERIE passes buy trains
+ERIE passes buy/use companies
+AI 4 operates B&O
+B&O spends $20 and lays tile #15 with rotation 3 on C9 (South Bend)
+B&O spends $20 and lays tile #8 with rotation 1 on D8
+B&O runs a 2 train for $100: H12-J10
+B&O runs a 2 train for $80: H12-G13
+B&O runs a 3/5 train for $130: C17-C15-(C9)-B8
+B&O runs a 3/5 train for $130: H12-G9-(E11)-(D14)-C15
+B&O pays out $440 = $44.0 per share ($220 to AI 4, $132 to B&O, $44 to AI 1, $44 to AI 2)
+B&O's share price moves right from $124 to $150 (2 steps)
+B&O passes buy/use companies
+AI 1 operates C&O
+C&O spends $20 and lays tile #23 with rotation 5 on H14
+C&O places a token on E17 (Cleveland)  for $80
+C&O passes place a token or lay track
+C&O runs a 2 train for $80: E17-D20
+C&O runs a 3/5 train for $160: (I15)-G15-E17-D20-(C21) + Mail Contract
+C&O runs for $240 and pays half
+C&O withholds $120
+C&O pays out $120 = $12.0 per share ($72 to C&O, $48 to AI 1)
+C&O's share price moves right from $70 to $80
+C&O passes buy trains
+C&O passes buy/use companies
+AI 2 operates GT
+GT spends $20 and lays tile #298 with rotation 0 on D6 (Chicago)
+GT places a token on I5 (Centralia)  for $80
+GT spends $20 and lays tile #7 with rotation 0 on I7
+GT runs a 2 train for $80: B16-C15
+GT runs a 2 train for $60: I5-I1
+GT runs a 3/5 train for $130: J10-H12-G9-(E11)-(C9)
+GT withholds $270
+GT's share price moves left from $30 to $20
+GT passes buy/use companies
+AI 5 operates PRR
+PRR spends $20 and lays tile #15 with rotation 0 on D14 (Toledo)
+PRR places a token on B16 (Port Huron)  for $80
+PRR spends $20 and lays tile #9 with rotation 4 on D12
+PRR runs a 2 train for $80: B16-C15
+PRR runs a 2 train for $80: G13-H12
+PRR withholds $160
+PRR's share price moves left from $30 to $20
+PRR passes buy trains
+PRR passes buy/use companies
+-- Operating Round 4.2 (of 2) --
+ERIE collects $10 from Steamboat Company
+ERIE collects $15 from Lake Shore Line
+B&O collects $15 from Meat Packing Company
+C&O collects $10 from Chicago and Western Indiana
+GT collects $15 from Little Miami
+PRR collects $15 from Michigan Central
+PRR collects $20 from Tunnel Blasting Company
+AI 3 operates ERIE
+ERIE spends $20 and lays tile #25 with rotation 5 on G11
+ERIE passes place a token or lay track
+ERIE runs a 2 train for $80: E17-D20
+ERIE runs a 2 train for $80: E17-D20
+ERIE runs a 3/5 train for $150: E17-(G15)-(G13)-H12-J10
+ERIE pays out $310 = $31.0 per share ($155 to AI 3, $155 to ERIE)
+ERIE's share price moves right from $165 to $180
+ERIE buys a 4/6 train for $450 from The Depot
+-- Phase III (Operating Rounds: 2 | Train Limit: 3 | Available Tiles: Yellow, Green, Brown) --
+-- Event: 2 trains are obsolete --
+-- Event: Private companies close --
+ERIE passes buy trains
+ERIE skips buy/use companies
+AI 4 operates B&O
+B&O spends $20 and lays tile #611 with rotation 0 on G9 (Indianapolis)
+B&O spends $20 and lays tile #7 with rotation 3 on J6
+B&O runs a 2 train for $100: G19-G21
+B&O runs a 2 train for $80: G19-E17
+B&O runs a 3/5 train for $230: C17-C15-(C9)-(D6)-C5 + E/W
+B&O runs a 3/5 train for $160: J10-H12-(E11)-G9
+-- Event: Obsolete trains rust --
+B&O pays out $570 = $57.0 per share ($285 to AI 4, $171 to B&O, $57 to AI 1, $57 to AI 2)
+B&O's share price moves right from $150 to $180 (2 steps)
+B&O buys a 4/6 train for $450 from The Depot
+B&O skips buy/use companies
+AI 1 operates C&O
+C&O spends $20 and lays tile #611 with rotation 3 on D20 (Erie)
+C&O places a token on G15 (Columbus)  for $80
+C&O passes place a token or lay track
+C&O runs a 2 train for $90: E17-D20
+C&O runs a 3/5 train for $210: G21-(G19)-E17-D20-(E21) + Mail Contract
+-- Event: Obsolete trains rust --
+C&O runs for $300 and pays half
+C&O withholds $150
+C&O pays out $150 = $15.0 per share ($90 to C&O, $60 to AI 1)
+C&O's share price moves right from $80 to $90
+C&O buys a 4/6 train for $450 from The Depot
+C&O passes buy trains
+C&O skips buy/use companies
+AI 2 operates GT
+GT spends $20 and lays tile #611 with rotation 2 on G13 (Dayton)
+GT spends $20 and lays tile #7 with rotation 1 on J8
+GT runs a 2 train for $80: I5-I1
+GT runs a 2 train for $80: B16-C15
+GT runs a 3/5 train for $160: J10-H12-G9-(E11)-(C9)
+-- Event: Obsolete trains rust --
+GT pays out $320 = $32.0 per share ($160 to AI 2, $128 to GT, $32 to AI 4)
+GT's share price moves right from $20 to $40 (2 steps)
+GT buys a 4/6 train for $450 from The Depot
+GT skips buy/use companies
+AI 5 operates PRR
+PRR spends $20 and lays tile #611 with rotation 1 on G15 (Columbus)
+PRR places a token on C9 (South Bend)  for $80
+PRR passes place a token or lay track
+PRR runs a 2 train for $90: G13-H12
+PRR runs a 2 train for $80: G13-G15
+-- Event: Obsolete trains rust --
+PRR withholds $170
+PRR's share price moves left from $20 to $10
+PRR buys a 4/6 train for $450 from The Depot
+PRR passes buy trains
+PRR skips buy/use companies
+-- Stock Round 5 --
+AI 5 buys a 10% share of PRR from the Treasury for $10
+AI 1 buys a 10% share of C&O from the Treasury for $90
+AI 2 buys a 10% share of GT from the Treasury for $40
+AI 3 buys a 10% share of ERIE from the Treasury for $180
+AI 4 pars NYC at $100
+AI 4 buys a 20% share of NYC from the Treasury for $200
+AI 4 becomes the president of NYC
+NYC floats
+NYC places a token on D20
+AI 5 passes
+AI 1 buys a 10% share of C&O from the Treasury for $90
+AI 2 buys a 10% share of ERIE from the Treasury for $180
+AI 3 buys a 10% share of C&O from the Treasury for $90
+AI 4 buys a 10% share of B&O from the Treasury for $180
+AI 5 passes
+AI 1 buys a 10% share of PRR from the Treasury for $10
+AI 2 buys a 10% share of PRR from the Treasury for $10
+AI 3 buys a 10% share of GT from the Treasury for $40
+AI 4 buys a 10% share of NYC from the Treasury for $100
+AI 5 passes
+AI 1 buys a 10% share of PRR from the Treasury for $10
+AI 2 passes
+AI 3 passes
+AI 4 buys a 10% share of GT from the Treasury for $40
+AI 5 passes
+AI 1 passes
+AI 2 passes
+AI 3 passes
+AI 4 buys a 10% share of GT from the Treasury for $40
+AI 5 passes
+AI 1 passes
+AI 2 passes
+AI 3 passes
+AI 4 passes
+GT's share price moves right from $40 to $50
+PRR's share price moves right from $10 to $20
+AI 5 has priority deal
+-- Operating Round 5.1 (of 2) --
+AI 3 operates ERIE
+ERIE spends $20 and lays tile #297 with rotation 0 on C15 (Detroit)
+ERIE passes place a token or lay track
+ERIE runs a 2 train for $100: D20-D22
+ERIE runs a 2 train for $100: D20-C21
+ERIE runs a 3/5 train for $160: G13-(G15)-E17-(G19)-G21
+ERIE runs a 4/6 train for $220: J10-H12-G13-(E11)-(D14)-C15
+-- Event: Obsolete trains rust --
+ERIE pays out $580 = $58.0 per share ($348 to AI 3, $174 to ERIE, $58 to AI 2)
+ERIE's share price moves right from $180 to $230 (3 steps)
+ERIE passes buy trains
+ERIE skips buy/use companies
+AI 4 operates B&O
+B&O spends $20 and lays tile #297 with rotation 0 on H12 (Cincinnati)
+B&O passes place a token or lay track
+B&O runs a 3/5 train for $240: C17-C15-(C9)-(D6)-C5 + E/W
+B&O runs a 4/6 train for $240: I1-(I5)-(G7)-G9-H12-J10
+B&O pays out $480 = $48.0 per share ($288 to AI 4, $96 to B&O, $48 to AI 1, $48 to AI 2)
+B&O's share price moves right from $180 to $212 (2 steps)
+B&O skips buy/use companies
+AI 4 operates NYC
+NYC spends $20 and lays tile #46 with rotation 1 on E19
+NYC passes place a token or lay track
+NYC skips run routes
+NYC does not run
+NYC's share price moves left from $100 to $90
+NYC issues 3 shares of NYC and receives $150
+NYC's share price moves left from $90 to $60
+AI 4 sells a 10% share of B&O and receives $212
+B&O's share price moves left from $212 to $195
+AI 4 contributes $370
+NYC buys a 6 train for $800 from The Depot
+-- Phase IV (Operating Rounds: 2 | Train Limit: 2 | Available Tiles: Yellow, Green, Brown, Gray) --
+-- Event: 3/5 trains are obsolete --
+-- Event: B&O's Meat Packing Company bonus removed from  --
+-- Event: ERIE's Steamboat Company bonus removed from  --
+-- Event: Reserved token slots removed --
+NYC skips buy/use companies
+AI 1 operates C&O
+C&O spends $20 and lays tile #51 with rotation 3 on D20 (Erie)
+C&O places a token on G19 (Wheeling)  for $80
+C&O passes place a token or lay track
+C&O runs a 3/5 train for $170: G21-(G19)-E17-D20
+C&O runs a 4/6 train for $240: I17-(I15)-G15-E17-D20 + Mail Contract
+-- Event: Obsolete trains rust --
+C&O pays out $410 = $41.0 per share ($246 to AI 1, $123 to C&O, $41 to AI 3)
+C&O's share price moves right from $90 to $112 (2 steps)
+C&O passes buy trains
+C&O skips buy/use companies
+AI 2 operates GT
+GT spends $20 and lays tile #290 with rotation 0 on C15 (Detroit)
+GT passes place a token or lay track
+GT runs a 4/6 train for $240: J10-H12-G9-(E11)-(D14)-C15
+-- Event: Obsolete trains rust --
+GT pays out $240 = $24.0 per share ($144 to AI 2, $72 to AI 4, $24 to AI 3)
+GT's share price moves right from $50 to $70 (2 steps)
+GT passes buy trains
+GT skips buy/use companies
+AI 5 operates PRR
+PRR spends $20 and lays tile #51 with rotation 2 on G13 (Dayton)
+PRR passes place a token or lay track
+PRR runs a 4/6 train for $280: C17-C15-C9-(D6)-C5 + E/W
+PRR pays out $280 = $28.0 per share ($140 to AI 5, $84 to AI 1, $28 to AI 2, $28 to AI 3)
+PRR's share price moves right from $20 to $40 (2 steps)
+PRR passes buy trains
+PRR skips buy/use companies
+-- Operating Round 5.2 (of 2) --
+AI 3 operates ERIE
+ERIE spends $20 and lays tile #611 with rotation 3 on G7 (Terre Haute)
+ERIE passes place a token or lay track
+ERIE runs a 4/6 train for $250: J10-H12-G13-(E11)-(D14)-C15
+-- Event: Obsolete trains rust --
+ERIE pays out $250 = $25.0 per share ($150 to AI 3, $75 to ERIE, $25 to AI 2)
+ERIE's share price moves right from $230 to $250
+ERIE buys a 6 train for $800 from The Depot
+ERIE skips buy/use companies
+AI 4 operates B&O
+B&O spends $20 and lays tile #611 with rotation 4 on E11 (Fort Wayne)
+B&O spends $20 and lays tile #7 with rotation 3 on G5
+B&O runs a 3/5 train for $250: C17-C15-(C9)-(D6)-C5 + E/W
+B&O runs a 4/6 train for $240: I1-(I5)-G7-(G9)-H12-J10
+-- Event: Obsolete trains rust --
+B&O pays out $490 = $49.0 per share ($245 to AI 4, $98 to B&O, $49 to AI 1, $49 to AI 2)
+B&O's share price moves right from $195 to $230 (2 steps)
+B&O passes buy trains
+B&O skips buy/use companies
+AI 1 operates C&O
+C&O spends $20 and lays tile #297 with rotation 3 on E17 (Cleveland)
+C&O spends $20 and lays tile #7 with rotation 4 on E15
+C&O runs a 4/6 train for $280: G21-(G19)-E17-G15-(I15)-G13 + Mail Contract
+C&O pays out $280 = $28.0 per share ($168 to AI 1, $84 to C&O, $28 to AI 3)
+C&O's share price moves right from $112 to $137 (2 steps)
+C&O passes buy trains
+C&O skips buy/use companies
+AI 2 operates GT
+GT spends $20 and lays tile #45 with rotation 5 on H14
+GT spends $20 and lays tile #7 with rotation 5 on F6
+GT runs a 4/6 train for $240: J10-H12-G9-(E11)-(D14)-C15
+GT pays out $240 = $24.0 per share ($144 to AI 2, $72 to AI 4, $24 to AI 3)
+GT's share price moves right from $70 to $90 (2 steps)
+GT passes buy trains
+GT skips buy/use companies
+AI 4 operates NYC
+NYC skips place a token or lay track
+NYC runs a 6 train for $260: C21-D20-E17-G15-G13
+NYC pays out $260 = $26.0 per share ($104 to NYC, $78 to AI 4)
+NYC's share price moves right from $60 to $80 (2 steps)
+NYC passes buy trains
+NYC skips buy/use companies
+AI 5 operates PRR
+PRR spends $20 and lays tile #299 with rotation 0 on D6 (Chicago)
+PRR passes place a token or lay track
+PRR runs a 4/6 train for $280: C17-C15-C9-(D6)-C5 + E/W
+PRR pays out $280 = $28.0 per share ($140 to AI 5, $84 to AI 1, $28 to AI 2, $28 to AI 3)
+PRR's share price moves right from $40 to $60 (2 steps)
+PRR passes buy trains
+PRR skips buy/use companies
+-- Stock Round 6 --
+AI 5 buys a 10% share of B&O from the market for $230
+AI 1 pars IC at $112
+AI 1 buys a 20% share of IC from the Treasury for $224
+AI 1 becomes the president of IC
+IC floats
+IC places a token on K3
+IC receives a $112 subsidy
+AI 2 buys a 10% share of ERIE from the Treasury for $250
+AI 3 buys a 10% share of NYC from the Treasury for $80
+AI 4 buys a 10% share of B&O from the Treasury for $230
+AI 5 passes
+AI 1 buys a 10% share of IC from the Treasury for $112
+AI 2 buys a 10% share of NYC from the market for $80
+AI 3 buys a 10% share of C&O from the Treasury for $137
+AI 4 buys a 10% share of NYC from the market for $80
+AI 5 passes
+AI 1 passes
+AI 2 buys a 10% share of NYC from the Treasury for $80
+AI 3 buys a 10% share of NYC from the Treasury for $80
+AI 4 passes
+AI 5 passes
+AI 1 passes
+AI 2 passes
+AI 3 passes
+GT's share price moves right from $90 to $100
+NYC's share price moves left from $80 to $70
+PRR's share price moves right from $60 to $70
+AI 4 has priority deal
+-- Operating Round 6.1 (of 2) --
+AI 3 operates ERIE
+ERIE spends $20 and lays tile #45 with rotation 2 on F18
+ERIE passes place a token or lay track
+ERIE runs a 6 train for $330: D20-E17-G15-G13-H12-J10
+ERIE pays out $330 = $33.0 per share ($198 to AI 3, $66 to AI 2, $66 to ERIE)
+ERIE's share price moves right from $250 to $270
+ERIE skips buy/use companies
+AI 4 operates B&O
+B&O spends $20 and lays tile #44 with rotation 5 on F12
+B&O passes place a token or lay track
+B&O runs a 4/6 train for $320: C17-C15-(C9)-D6-C5 + E/W
+B&O pays out $320 = $32.0 per share ($192 to AI 4, $32 to AI 5, $32 to AI 1, $32 to AI 2, $32 to B&O)
+B&O's share price moves right from $230 to $250
+B&O buys a 6 train for $800 from The Depot
+B&O skips buy/use companies
+AI 1 operates C&O
+C&O spends $20 and lays tile #19 with rotation 0 on F16
+C&O passes place a token or lay track
+C&O runs a 4/6 train for $280: G21-(G19)-E17-G15-(I15)-G13 + Mail Contract
+C&O pays out $280 = $28.0 per share ($168 to AI 1, $56 to AI 3, $56 to C&O)
+C&O's share price moves right from $137 to $165 (2 steps)
+C&O passes buy trains
+C&O skips buy/use companies
+AI 1 operates IC
+IC spends $20 and lays tile #18 with rotation 5 on I7
+IC places a token on I5 (Centralia)  for $40
+IC passes place a token or lay track
+IC skips run routes
+IC does not run
+IC's share price moves left from $112 to $100
+IC issues 3 shares of IC and receives $180
+IC's share price moves left from $100 to $70
+AI 1 contributes $232
+IC buys a 6 train for $800 from The Depot
+IC skips buy/use companies
+AI 2 operates GT
+GT spends $20 and lays tile #22 with rotation 2 on D10
+GT passes place a token or lay track
+GT runs a 4/6 train for $240: J10-H12-G9-(G7)-(I5)-I1
+GT pays out $240 = $24.0 per share ($144 to AI 2, $72 to AI 4, $24 to AI 3)
+GT's share price moves right from $100 to $124 (2 steps)
+GT passes buy trains
+GT skips buy/use companies
+AI 4 operates NYC
+NYC spends $20 and lays tile #46 with rotation 0 on F16
+NYC places a token on G15 (Columbus)  for $80
+NYC passes place a token or lay track
+NYC runs a 6 train for $260: D22-D20-E17-G15-G13
+NYC pays out $260 = $26.0 per share ($104 to AI 4, $52 to AI 2, $52 to AI 3, $26 to NYC)
+NYC's share price moves right from $70 to $90 (2 steps)
+NYC passes buy trains
+NYC skips buy/use companies
+AI 5 operates PRR
+PRR spends $20 and lays tile #300 with rotation 0 on D6 (Chicago)
+PRR passes place a token or lay track
+PRR runs a 4/6 train for $300: C17-(C15)-C9-D6-C5 + E/W
+PRR pays out $300 = $30.0 per share ($150 to AI 5, $90 to AI 1, $30 to AI 2, $30 to AI 3)
+PRR's share price moves right from $70 to $90 (2 steps)
+PRR passes buy trains
+PRR skips buy/use companies
+-- Operating Round 6.2 (of 2) --
+AI 3 operates ERIE
+ERIE spends $20 and lays tile #23 with rotation 1 on C13
+ERIE passes place a token or lay track
+ERIE runs a 4/6 train for $240: G13-H12-(E11)-(D14)-C15-C17
+ERIE runs a 6 train for $300: J10-H12-G13-E11-G9-G7
+ERIE pays out $540 = $54.0 per share ($324 to AI 3, $108 to AI 2, $108 to ERIE)
+ERIE's share price moves right from $270 to $320 (2 steps)
+ERIE skips buy/use companies
+AI 4 operates B&O
+B&O spends $20 and lays tile #28 with rotation 3 on D8
+B&O passes place a token or lay track
+B&O runs a 6 train for $400: C17-C15-D14-C9-D6-C5 + E/W
+B&O pays out $400 = $40.0 per share ($240 to AI 4, $40 to AI 5, $40 to AI 1, $40 to AI 2, $40 to B&O)
+B&O's share price moves right from $250 to $270
+B&O skips buy/use companies
+AI 1 operates C&O
+C&O spends $20 and lays tile #42 with rotation 4 on G17
+C&O passes place a token or lay track
+C&O runs a 4/6 train for $280: G21-(G19)-E17-G15-(I15)-G13 + Mail Contract
+C&O pays out $280 = $28.0 per share ($168 to AI 1, $56 to AI 3, $56 to C&O)
+C&O's share price moves right from $165 to $180
+C&O passes buy trains
+C&O skips buy/use companies
+AI 2 operates GT
+GT spends $20 and lays tile #47 with rotation 1 on C13
+GT spends $20 and lays tile #7 with rotation 4 on B12
+GT runs a 4/6 train for $240: I1-(I5)-G7-(G9)-H12-J10
+GT pays out $240 = $24.0 per share ($144 to AI 2, $72 to AI 4, $24 to AI 3)
+GT's share price moves right from $124 to $137
+GT passes buy trains
+GT skips buy/use companies
+AI 4 operates NYC
+NYC spends $20 and lays tile #30 with rotation 4 on E15
+NYC passes place a token or lay track
+NYC runs a 6 train for $260: C21-D20-E17-G15-G13
+NYC pays out $260 = $26.0 per share ($104 to AI 4, $52 to AI 2, $52 to AI 3, $26 to NYC)
+NYC's share price moves right from $90 to $112 (2 steps)
+NYC passes buy trains
+NYC skips buy/use companies
+AI 5 operates PRR
+PRR spends $20 and lays tile #40 with rotation 1 on G11
+PRR passes place a token or lay track
+PRR runs a 4/6 train for $300: C17-(C15)-C9-D6-C5 + E/W
+PRR pays out $300 = $30.0 per share ($150 to AI 5, $90 to AI 1, $30 to AI 2, $30 to AI 3)
+PRR's share price moves right from $90 to $112 (2 steps)
+PRR passes buy trains
+PRR skips buy/use companies
+AI 1 operates IC
+IC passes place a token or lay track
+IC runs a 6 train for $120: I1-I5-G7
+IC pays out $120 = $12.0 per share ($48 to IC, $36 to AI 1)
+IC's share price moves right from $70 to $80
+IC passes buy trains
+IC skips buy/use companies
+-- Stock Round 7 --
+AI 4 passes
+AI 5 buys a 10% share of NYC from the market for $112
+AI 1 passes
+AI 2 passes
+AI 3 passes
+AI 4 passes
+AI 5 buys a 10% share of IC from the Treasury for $80
+AI 1 passes
+AI 2 passes
+AI 3 passes
+AI 4 passes
+AI 5 buys a 10% share of IC from the Treasury for $80
+AI 1 passes
+AI 2 passes
+AI 3 passes
+AI 4 passes
+AI 5 buys a 10% share of IC from the market for $80
+AI 1 passes
+AI 2 passes
+AI 3 passes
+AI 4 passes
+AI 5 passes
+GT's share price moves right from $137 to $150
+PRR's share price moves right from $112 to $124
+IC's share price moves left from $80 to $70
+AI 1 has priority deal
+-- Operating Round 7.1 (of 2) --
+AI 3 operates ERIE
+ERIE spends $20 and lays tile #41 with rotation 0 on E13
+ERIE passes place a token or lay track
+ERIE runs a 6 train for $320: J10-H12-G13-E11-D14-C15
+ERIE pays out $320 = $32.0 per share ($192 to AI 3, $64 to AI 2, $64 to ERIE)
+ERIE's share price moves right from $320 to $345
+ERIE skips buy/use companies
+AI 4 operates B&O
+B&O spends $20 and lays tile #29 with rotation 3 on B14
+B&O passes place a token or lay track
+B&O runs a 6 train for $400: C17-C15-D14-C9-D6-C5 + E/W
+B&O pays out $400 = $40.0 per share ($240 to AI 4, $40 to AI 1, $40 to AI 2, $40 to AI 5, $40 to B&O)
+B&O's share price moves right from $270 to $295
+B&O skips buy/use companies
+AI 1 operates C&O
+C&O spends $20 and lays tile #42 with rotation 5 on E15
+C&O passes place a token or lay track
+C&O runs a 4/6 train for $280: G21-(G19)-E17-G15-(I15)-G13 + Mail Contract
+C&O pays out $280 = $28.0 per share ($168 to AI 1, $56 to AI 3, $56 to C&O)
+C&O's share price moves right from $180 to $195
+C&O passes buy trains
+C&O skips buy/use companies
+AI 2 operates GT
+GT spends $20 and lays tile #70 with rotation 3 on B14
+GT passes place a token or lay track
+GT runs a 4/6 train for $240: I1-(I5)-G7-(G9)-H12-J10
+GT pays out $240 = $24.0 per share ($144 to AI 2, $72 to AI 4, $24 to AI 3)
+GT's share price moves right from $150 to $165
+GT passes buy trains
+GT skips buy/use companies
+AI 5 operates PRR
+PRR spends $20 and lays tile #27 with rotation 0 on F10
+PRR passes place a token or lay track
+PRR runs a 4/6 train for $300: C17-(C15)-C9-D6-C5 + E/W
+PRR pays out $300 = $30.0 per share ($150 to AI 5, $90 to AI 1, $30 to AI 2, $30 to AI 3)
+PRR's share price moves right from $124 to $150 (2 steps)
+PRR passes buy trains
+PRR skips buy/use companies
+AI 4 operates NYC
+NYC spends $20 and lays tile #29 with rotation 5 on F14
+NYC places a token on E17 (Cleveland)  for $80
+NYC passes place a token or lay track
+NYC runs a 6 train for $260: C21-D20-E17-G15-G13
+NYC pays out $260 = $26.0 per share ($104 to AI 4, $52 to AI 2, $52 to AI 3, $26 to AI 5, $26 to NYC)
+NYC's share price moves right from $112 to $137 (2 steps)
+NYC passes buy trains
+NYC skips buy/use companies
+AI 1 operates IC
+IC spends $20 and lays tile #24 with rotation 3 on H6
+IC passes place a token or lay track
+IC runs a 6 train for $120: I1-I5-G7
+IC pays out $120 = $12.0 per share ($36 to AI 1, $36 to AI 5, $24 to IC)
+IC's share price moves right from $70 to $80
+IC passes buy trains
+IC skips buy/use companies
+-- Operating Round 7.2 (of 2) --
+AI 3 operates ERIE
+ERIE spends $20 and lays tile #21 with rotation 2 on F8
+ERIE spends $20 and lays tile #9 with rotation 5 on E7
+ERIE runs a 4/6 train for $250: J10-H12-G13-(E11)-(D14)-C15
+ERIE runs a 6 train for $320: C5-D6-G9-H12-G13-G15
+ERIE pays out $570 = $57.0 per share ($342 to AI 3, $114 to AI 2, $114 to ERIE)
+ERIE's share price moves right from $345 to $375
+ERIE skips buy/use companies
+AI 4 operates B&O
+B&O spends $20 and lays tile #43 with rotation 5 on I7
+B&O passes place a token or lay track
+B&O runs a 6 train for $410: C17-C15-D14-G9-D6-C5 + E/W
+B&O pays out $410 = $41.0 per share ($246 to AI 4, $41 to AI 1, $41 to AI 2, $41 to AI 5, $41 to B&O)
+B&O's share price moves right from $295 to $320
+B&O skips buy/use companies
+AI 1 operates C&O
+C&O spends $20 and lays tile #24 with rotation 0 on H16
+C&O passes place a token or lay track
+C&O runs a 4/6 train for $280: G21-(G19)-E17-G15-(I15)-G13 + Mail Contract
+-- The bank has broken --
+C&O pays out $280 = $28.0 per share ($168 to AI 1, $56 to AI 3, $56 to C&O)
+C&O's share price moves right from $195 to $212
+C&O passes buy trains
+C&O skips buy/use companies
+AI 2 operates GT
+GT spends $20 and lays tile #47 with rotation 2 on H6
+GT passes place a token or lay track
+GT runs a 4/6 train for $310: C17-(C15)-(D14)-G9-D6-C5 + E/W
+GT pays out $310 = $31.0 per share ($186 to AI 2, $93 to AI 4, $31 to AI 3)
+GT's share price moves right from $165 to $180
+GT passes buy trains
+GT skips buy/use companies
+AI 5 operates PRR
+PRR spends $20 and lays tile #41 with rotation 0 on F10
+PRR passes place a token or lay track
+PRR runs a 4/6 train for $310: C17-(C15)-(D14)-E11-D6-C5 + E/W
+PRR pays out $310 = $31.0 per share ($155 to AI 5, $93 to AI 1, $31 to AI 2, $31 to AI 3)
+PRR's share price moves right from $150 to $180 (2 steps)
+PRR passes buy trains
+PRR skips buy/use companies
+AI 4 operates NYC
+NYC spends $20 and lays tile #43 with rotation 0 on H16
+NYC passes place a token or lay track
+NYC runs a 6 train for $260: C21-D20-E17-G15-G13
+NYC pays out $260 = $26.0 per share ($104 to AI 4, $52 to AI 2, $52 to AI 3, $26 to AI 5, $26 to NYC)
+NYC's share price moves right from $137 to $150
+NYC passes buy trains
+NYC skips buy/use companies
+AI 1 operates IC
+IC spends $20 and lays tile #18 with rotation 2 on G5
+IC spends $20 and lays tile #8 with rotation 3 on F4
+IC runs a 6 train for $120: I1-I5-G7
+IC pays out $120 = $12.0 per share ($36 to AI 1, $36 to AI 5, $24 to IC)
+IC's share price moves right from $80 to $90
+IC passes buy trains
+IC skips buy/use companies
+-- Game over:  ($5424),  ($4993),  ($4232),  ($3821),  ($2227) --

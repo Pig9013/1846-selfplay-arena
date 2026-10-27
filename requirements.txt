@@ -1,0 +1,5 @@
+# Runtime platform: Python 3.12 standard library only.
+# Training: a recent PyTorch build (CPU wheels are sufficient).
+torch>=2.7
+# Development only: browser layout tests.
+# playwright>=1.40

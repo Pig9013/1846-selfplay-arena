@@ -1,0 +1,16 @@
+# local runtime and data
+runtime/
+runs/
+train/data/
+train/checkpoints/
+train/status.json
+train/last-run.json
+train/run.pid
+test-output/
+__pycache__/
+*.pyc
+.venv/
+*.tmp
+*.log
+train/log.jsonl
+dist/
