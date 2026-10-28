@@ -35,8 +35,8 @@ Human-play prior and removal of the hard-coded Chicago rule.
 ### Validation
 
 - Human corpus: 665 games, 4p 461 / 5p 142 / 3p 62.
-  D6 upgraded in 98.7% of games (green 99.4%, brown 97.7%, grey 86.6%);
-  all three Z cities in 94.1%; E/W in 98.1%; C5 in 98.7%.
+  D6 upgraded in 99.4% of games (green 99.4%, brown 97.7%, grey 86.6%);
+  all three Z cities in 94.1%; E/W in 98.8%; C5 in 99.4%.
 - The human prior files are generated from those games, not hand-written.
 
 ### Current status (2026-10-28 14:58)
