@@ -116,7 +116,9 @@ def validate(raw):
     model = str(raw.get("model", ""))[:200]
     if "lmstudio" in strategies and not model:
         raise ValueError("使用 LM Studio 时，请先检测并选择已加载的模型。")
-    config = {"players": players, "seed": seed, "strategies": strategies, "model": model, "max_actions": 3000}
+    hpw = max(0.0, min(float(raw.get("human_prior_weight", 10)), 50.0))
+    config = {"players": players, "seed": seed, "strategies": strategies, "model": model,
+              "max_actions": 3000, "human_prior_weight": hpw}
     if "neural" in strategies:
         # The local neural checkpoint is a separate decision source from LM
         # Studio. It needs no external model server to be selectable; arena.rb
@@ -162,7 +164,7 @@ def start_run(config, *, from_batch=False):
         path.mkdir()
         save(path / "config.json", config)
         data = {"id": run_id, "config": config, "status": "running", "created": time.time(),
-                "frames": 0, "action_count": 0, "error": None, "version": "1.1.0"}
+                "frames": 0, "action_count": 0, "error": None, "version": "1.2.0"}
         save(path / "summary.json", data)
         LIVE[run_id] = {"summary": data, "state": None, "board": [], "decision": None,
                         "logs": [], "offsets": [], "process": None, "pause": False,
@@ -405,11 +407,13 @@ def start_training(payload):
     workers = max(1, min(int(payload.get("workers", 6)), cores, 12))
     minutes = float(payload.get("minutes", 0))
     minutes = 0.0 if minutes <= 0 else min(minutes, 10080.0)
+    human_prior_weight = max(0.0, min(float(payload.get("human_prior_weight", 10)), 50.0))
     seed = int(payload.get("seed", 2000))
     flags = subprocess.CREATE_NO_WINDOW | 0x00004000  # below normal priority
     command = [sys.executable, "-u", str(TRAIN_SCRIPT), "--workers", str(workers),
                "--minutes", str(minutes), "--seed", str(seed), "--train-every", "4",
-               "--steps", "150", "--net-weight", "15", "--temperature", "1.5",
+               "--steps", "150", "--net-weight", "15", "--human-prior-weight", str(human_prior_weight),
+               "--temperature", "1.5",
                "--report-every", "1000", "--eval-every", "300", "--keep", "4000"]
     if minutes == 0:
         command.append("--continuous")

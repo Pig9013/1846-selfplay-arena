@@ -228,13 +228,14 @@ async function refreshTrain(){
     '已跑 <b>'+(s.games||0)+'</b> 局',
     '退化 <b>'+(s.degenerate||0)+'</b> 局',
     '速率 <b>'+(s.rate??0)+'</b> 局/分',
+    '人类先验 <b>'+(s.human_prior_weight??10)+'</b>',
     last?('损失 <b>'+Number(last.loss||0).toFixed(3)+'</b>'):'',
     report?('<a href="/api/report?file='+encodeURIComponent(report.name)+'" target="_blank">最近分析：'+esc(report.name)+'</a>'):''
   ].filter(Boolean).join(' · ');
   $('trainNote').textContent=last?('最近一步：'+(last.step||0)+' 步 · 样本 '+(last.samples||0)+' · 损失 '+Number(last.loss||0).toFixed(3)+' · 数据文件 '+t.samples):'自战记录写入 train\\data，模型写入 train\\checkpoints\\latest.pt。';
  }catch(e){}
 }
-$('trainStart').onclick=async()=>{try{await api('/api/train',{action:'start',workers:Number($('trainWorkers').value),minutes:Number($('trainMinutes').value)});await refreshTrain();}catch(e){notice(e.message);}};
+$('trainStart').onclick=async()=>{try{await api('/api/train',{action:'start',workers:Number($('trainWorkers').value),minutes:Number($('trainMinutes').value),human_prior_weight:Number($('humanPrior').value)});await refreshTrain();}catch(e){notice(e.message);}};
 $('trainStop').onclick=async()=>{try{await api('/api/train',{action:'stop'});await refreshTrain();}catch(e){notice(e.message);}};
 $('analyze').onclick=async()=>{try{notice('正在读取自战记录生成分析…');const r=await api('/api/analyze',{});notice(r.report?('分析已生成：'+r.report):'分析已生成');await refreshTrain();}catch(e){notice(e.message);}};
 refreshTrain(); setInterval(refreshTrain, 4000);

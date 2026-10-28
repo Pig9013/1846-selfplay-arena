@@ -10,6 +10,8 @@ module P1846
     CHICAGO = 'D6'
     CHICAGO_CONNECTIONS = 'C5'
     OFFBOARD_HEXES = %w[B8 B18 C5 C17 C21 D22 E23 F22 G21 H20 I1 I17 J10].freeze
+    E_OFFBOARDS = %w[B18 C17 C21 D22 E23 F22 G21 H20 I17].freeze
+    W_OFFBOARDS = %w[C5 I1].freeze
 
     module_function
 
@@ -77,9 +79,23 @@ module P1846
       values.max || 0
     end
 
+    # Which E/W off-boards the company's current network already reaches. The
+    # E/W bonus is real money, but it is not a Chicago rule: any E plus any W
+    # off-board on one route earns it.
+    def reached_offboard_groups(game, entity)
+      groups = []
+      game.graph_for_entity(entity).connected_hexes(entity).each_key do |hex|
+        hex.tile.offboards.each { |offboard| groups.concat(offboard.groups || []) }
+        groups << 'W' if hex.tile.label&.to_s == 'W'
+      end
+      groups.uniq & %w[E W]
+    rescue StandardError
+      []
+    end
+
     # Analyse one rotated tile at +hex+. +connected_edges+ is the hash returned
     # by the engine's tracker_available_hex for this hex before the lay.
-    def analyze_tile(game, entity, hex, tile, connected_edges)
+    def analyze_tile(game, entity, hex, tile, connected_edges, ew_reached = [])
       parent = {}
       paths = tile.paths
       paths.each { |path| union(parent, key(path.a), key(path.b)) }
@@ -119,6 +135,16 @@ module P1846
 
       link = (network_roots & offboard_roots).any?
       groups = offboard_edges.flat_map { |num| offboard_groups(hex, num) }.uniq
+      new_groups = groups & %w[E W]
+      ew_completion = new_groups.any? && (ew_reached - new_groups).any?
+      ew_start = ew_reached.empty? && new_groups.any?
+      ew_approach = 0
+      if ew_reached.size == 1 && !ew_completion
+        missing = (%w[E W] - ew_reached).first
+        targets = missing == 'E' ? E_OFFBOARDS : W_OFFBOARDS
+        distance = targets.map { |hex_id| hex_distance(hex, game.hex_by_id(hex_id)) }.min
+        ew_approach = [12 - distance, 0].max
+      end
       train = game.route_trains(entity).first || P1846.display_train(game)
       offboard_value = if link
                          offboard_edges.map { |num| offboard_revenue(hex, num, game, train) }.max.to_i
@@ -144,6 +170,9 @@ module P1846
         offboard_edges: offboard_edges.size,
         offboard_link: link,
         offboard_groups: groups,
+        ew_completion: ew_completion,
+        ew_start: ew_start,
+        ew_approach: ew_approach,
         offboard_value: offboard_value,
         points_at_offboard: offboard_edges.any?,
         through_edges: through_edges,

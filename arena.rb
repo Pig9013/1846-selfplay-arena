@@ -6,7 +6,7 @@ require_relative 'p1846/model'
 require 'net/http'
 
 module Arena1846
-  VERSION = '1.1.0'
+  VERSION = '1.2.0'
   STYLES = %w[balanced growth income random lmstudio neural].freeze
 
   # The upstream Ruby path walker validates individual routes. Search combinations
@@ -23,6 +23,7 @@ module Arena1846
       @names = (1..Integer(config.fetch('players', 3))).to_h { |i| [i.to_s, "AI #{i}"] }
       @styles = config.fetch('strategies', %w[balanced growth income])
       @net_weight = config.fetch('net_weight', 15.0).to_f
+      P1846::HumanPrior.weight = config.fetch('human_prior_weight', 10.0).to_f
       @net = P1846::NeuralClient.new(config['net_url']) if config['net_url']
       @net_error = nil
       @net_used = false
@@ -124,6 +125,7 @@ module Arena1846
         end
       end
       if types.include?('lay_tile')
+        ew_reached = P1846::Connectivity.reached_offboard_groups(g, e)
         g.hexes.each do |hex|
           connected = step.tracker_available_hex(e, hex)
           next unless connected
@@ -141,7 +143,7 @@ module Arena1846
               # The engine tells us which edges currently reach this company.
               # Analyse the rotated tile against those edges, so rotations that
               # do not join the offboard are scored as the dead ends they are.
-              info = P1846::Connectivity.analyze_tile(g, e, hex, tile, connected)
+              info = P1846::Connectivity.analyze_tile(g, e, hex, tile, connected, ew_reached)
               add(list, Engine::Action::LayTile.new(e, hex: hex, tile: tile, rotation: rotation),
                   P1846::Policy.score_lay_tile(g, e, { cost: cost, info: info }),
                   info[:offboard_link] ? '接通外域，完成一条可计费线路' : '拓展连通线路或升级城市',

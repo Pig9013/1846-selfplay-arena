@@ -4,6 +4,41 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/) and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [1.2.0] - 2026-10-28
+
+Human-play prior and removal of the hard-coded Chicago rule.
+
+### Added
+
+- **Human corpus prior** (`train/human_playbook.py`): reads 665 parsed
+  3–5 player 1846 games from 18xx.games and writes
+  `train/human_playbook.md` (Chinese summary of opening, track, trains,
+  dividends and strategic themes) and `train/human_prior.json` (normalized
+  frequency tables for phase/hex/tile, par prices, private prices, train and
+  dividend choices).
+- `p1846/human_prior.rb`: a small, configurable soft prior
+  (`--human-prior-weight`, default 10, 0 disables) used by the heuristic.
+  It is data-derived, not a rule; the neural policy can override it.
+- Generic **E/W completion** bonus: when a company already reaches one side,
+  joining the other side is rewarded; approaching the missing side gets a
+  smaller bonus. No Chicago special case.
+
+### Changed
+
+- Removed the hard-coded Chicago bonuses from the heuristic (D6
+  +30/+55/+90/+125, C5 +40, Chicago token +58, home-distance-to-Chicago).
+  Chicago now appears only through generic revenue/connectivity and the human
+  frequency prior.
+- README, usage guide and UI wording now distinguish the local neural
+  checkpoint from optional LM Studio.
+
+### Validation
+
+- Human corpus: 665 games, 4p 461 / 5p 142 / 3p 62.
+  D6 upgraded in 98.7% of games (green 99.4%, brown 97.7%, grey 86.6%);
+  all three Z cities in 94.1%; E/W in 98.1%; C5 in 98.7%.
+- The human prior files are generated from those games, not hand-written.
+
 ## [1.1.0] - 2026-10-28
 
 Continuous self-play, action-type/feature repair, and a Chicago/off-board-aware policy.

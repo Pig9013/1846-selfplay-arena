@@ -48,6 +48,7 @@
     <div class="train-controls">
       <label>并发进程<input id="trainWorkers" type="number" min="1" max="12" value="6"></label>
       <label>训练时长（分，0=持续）<input id="trainMinutes" type="number" min="0" max="10080" value="0"></label>
+      <label>人类先验权重<input id="humanPrior" type="number" min="0" max="50" value="10"></label>
       <button id="trainStart" class="primary">开始持续自学习</button>
       <button id="trainStop" class="secondary" disabled>停止</button>
       <button id="analyze" class="secondary">生成行动分析</button>

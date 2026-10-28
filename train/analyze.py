@@ -28,6 +28,8 @@ CHICAGO = "D6"
 CHICAGO_CONNECTIONS = "C5"
 LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 CHANGELOG = Path(__file__).resolve().parent / "logic_changelog.json"
+HUMAN_PRIOR = Path(__file__).resolve().parent / "human_prior.json"
+Z_HEXES = {"C15", "E17", "H12"}
 
 
 def read_jsonl(path):
@@ -204,6 +206,8 @@ def analyze_game(entry):
         owner = founder.get(actor, actor if actor in ranks else None)
         if owner in ranks:
             lay_by_player[owner] += 1
+    z_upgrades = {action.get("hex") for action in actions
+                  if action.get("type") == "lay_tile" and action.get("hex") in Z_HEXES}
     chicago_green = any(tile == "298" for _, tile in chicago)
     chicago_brown = any(tile == "299" for _, tile in chicago)
     chicago_gray = any(tile == "300" for _, tile in chicago)
@@ -228,6 +232,8 @@ def analyze_game(entry):
         "chicago_brown": chicago_brown,
         "chicago_gray": chicago_gray,
         "chicago_owner": chicago_owner,
+        "z_upgrades": z_upgrades,
+        "z_all3": len(z_upgrades) == 3,
         "c5_routes": c5_routes,
         "d6_c5_routes": d6_c5_routes,
         "ew_routes": ew_routes,
@@ -333,6 +339,11 @@ def build_report(games, degenerate, missing_game, total_files, label, out_dir, m
     chicago_any = sum(1 for g in analyzed if g["chicago"])
     c5_games = sum(1 for g in analyzed if g["c5_routes"] > 0)
     ew_games = sum(1 for g in analyzed if g["ew_routes"] > 0)
+    z_all = sum(1 for g in analyzed if g["z_all3"])
+    try:
+        human = json.loads(HUMAN_PRIOR.read_text(encoding="utf-8")).get("rates", {})
+    except (OSError, json.JSONDecodeError):
+        human = {}
     offboard_games = sum(1 for g in analyzed if g["offboards"])
     avg_lays = lay_total / n if n else 0
     avg_routes = sum(g["c5_routes"] for g in analyzed) / n if n else 0
@@ -398,7 +409,8 @@ def build_report(games, degenerate, missing_game, total_files, label, out_dir, m
         lines.append(
             f"这一批 AI **每局平均铺 {avg_lays:.1f} 块瓦**，"
             f"**{pct(chicago_green / n)} 的对局升级了芝加哥**，"
-            f"**{pct(c5_games / n)} 的对局跑出了芝加哥连接（C5）**，"
+            f"**{pct(z_all / n)} 的对局把 Z 三城全升级**，"
+            f"**{pct(c5_games / n)} 的对局跑出了 C5**，"
             f"**{pct(ew_games / n)} 的对局跑出东西向奖励**；"
             f"前 1 候选被采纳率 {pct(decisions['top1_rate'])}，平均排序 {decisions['mean_rank']:.2f}。"
         )
@@ -439,12 +451,13 @@ def build_report(games, degenerate, missing_game, total_files, label, out_dir, m
     lines.append("| 项 | 权重/规则 |")
     lines.append("|:--|:--|")
     lines.append("| 外域连接 | 旋转真正接通外域：+42，再按外域收入加 0.6×收入；只朝向外域却没接通：−30 |")
-    lines.append("| 芝加哥 | 升级 D6：+30 基础，绿 +55 / 棕 +90 / 灰 +125；接通 C5 再 +40 |")
+    lines.append("| E/W | 已有 E 或 W 时接通另一半 +55；第一次接通任一侧 +14；向缺失侧靠近每个距离 +2 |")
     lines.append("| 城市收益 | 新瓦城市收入 ×0.7；升级带来的收入增量再 ×0.45 |")
     lines.append("| 通过性 | 同一路径连通边数 ×8 |")
-    lines.append("| 成本 | 铺轨成本 ×0.28 扣分；没钱买车时再扣 40 |")
-    lines.append("| 车站 | 芝加哥站 +58；保留/远程站 +22 |")
-    lines.append("| 私营 | MS 44 / BIG4 34 / C&WI 38（芝加哥免费站） |")
+    lines.append("| 成本 | 铺轨成本 ×0.42 扣分；没钱买车时再扣 40 |")
+    lines.append("| 车站 | 保留/远程站 +22（不再有芝加哥专用加分） |")
+    lines.append("| 私营 | MS 44 / BIG4 34 / C&WI 30；再叠加人类频率先验 |")
+    lines.append("| 人类先验 | 各时代铺轨格/瓦、par、私营、买车/分红频率，默认权重 10，可设 0 关闭 |")
     lines.append("")
     lines.append(f"实际决策统计：前 1 候选被采纳 **{pct(decisions['top1_rate'])}**，平均排序 "
                  f"**{decisions['mean_rank']:.2f}**，先验熵 **{decisions['mean_entropy']:.2f}**，"
@@ -470,6 +483,7 @@ def build_report(games, degenerate, missing_game, total_files, label, out_dir, m
     lines.append(f"- 芝加哥升级：{chicago_green}/{n} 局到绿（{pct(chicago_green / n) if n else '—'}），"
                  f"{sum(1 for g in analyzed if g['chicago_brown'])} 局到棕，"
                  f"{sum(1 for g in analyzed if g['chicago_gray'])} 局到灰；有芝加哥行动的局 {chicago_any}。")
+    lines.append(f"- Z 城（C15/E17/H12）：三城全升级 {z_all}/{n} 局（{pct(z_all / n) if n else '—'}）。")
     lines.append(f"- 芝加哥连接：{c5_games} 局至少跑过一次 C5（{pct(c5_games / n) if n else '—'}），"
                  f"平均每局 {avg_routes:.2f} 条 C5 线路；其中 D6–C5 同线 {sum(g['d6_c5_routes'] for g in analyzed)} 条。")
     lines.append(f"- 东西向：{ew_games} 局跑出 E/W 奖励（{pct(ew_games / n) if n else '—'}），平均每局 {avg_ew:.2f} 条。")
@@ -477,6 +491,14 @@ def build_report(games, degenerate, missing_game, total_files, label, out_dir, m
     lines.append(f"- 旋转质量：在铺轨决策中，**接通外域** {decisions['offboard_lay']} 次，"
                  f"**朝向外域但没接通** {decisions['offboard_miss']} 次"
                  f"（失误率 {pct(decisions['offboard_miss'] / max(1, decisions['offboard_lay'] + decisions['offboard_miss']))}）。")
+    if n and human:
+        lines.append("")
+        lines.append("| 指标 | 本批 AI | 人类 665 局 |")
+        lines.append("|:--|--:|--:|")
+        lines.append(f"| 绿芝加哥 | {pct(chicago_green / n)} | {pct(human.get('d6_green', 0))} |")
+        lines.append(f"| Z 三城全升级 | {pct(z_all / n)} | {pct(human.get('z_all3', 0))} |")
+        lines.append(f"| E/W 奖励 | {pct(ew_games / n)} | {pct(human.get('ew', 0))} |")
+        lines.append(f"| C5 线路 | {pct(c5_games / n)} | {pct(human.get('c5', 0))} |")
     lines.append("")
     lines.append("## 四、什么更可能赢（描述性，不是因果）")
     lines.append("")
@@ -531,6 +553,14 @@ def build_report(games, degenerate, missing_game, total_files, label, out_dir, m
         fixes.append("芝加哥升级率仍低于 30%，考虑把 C&WI 的竞价权重和 D6 绿瓦权重再提高一档。")
     if n and chicago_green / n > 0.9:
         fixes.append("芝加哥升级率高于 90%，可能过度集中；观察是否挤压其他外域线路，必要时下调 D6 绿瓦加分。")
+    if n and human.get("ew") and ew_games / n < human["ew"] - 0.2:
+        fixes.append(f"E/W 只有 {pct(ew_games / n)}，人类基线 {pct(human['ew'])}；"
+                     "检查 E/W 补全/靠近奖励和长车购买，这是当前最大的行为差距。")
+    if n and human.get("c5") and c5_games / n < human["c5"] - 0.2:
+        fixes.append(f"C5 只有 {pct(c5_games / n)}，人类基线 {pct(human['c5'])}；检查芝加哥/西侧连通。")
+    if n and human.get("z_all3") and z_all / n < human["z_all3"] - 0.1:
+        fixes.append(f"Z 三城全升级 {pct(z_all / n)}，人类基线 {pct(human['z_all3'])}；"
+                     "中局要给 C15/E17/H12 的升级留出铺轨槽位和现金。")
     if top_layer_ranks and statistics.mean(top_layer_ranks) > 2.6:
         fixes.append(f"铺轨最多的玩家平均名次 {statistics.mean(top_layer_ranks):.2f}，差于 4 人局随机 2.50；"
                      "AI 有“能铺就铺”的倾向，下一批检查铺轨边际收益/成本，不要把铺轨数当目标。")

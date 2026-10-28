@@ -5,7 +5,7 @@
 [![verify](https://github.com/Pig9013/1846-selfplay-arena/actions/workflows/verify.yml/badge.svg)](https://github.com/Pig9013/1846-selfplay-arena/actions/workflows/verify.yml)
 [![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-**版本 1.1.0** · Windows · 离线运行 · 不依赖网站账号和云端模型
+**版本 1.2.0** · Windows · 离线运行 · 不依赖网站账号和云端模型
 
 ---
 
@@ -29,6 +29,7 @@
 | 私营公司 | Boomtown / Meat Packing / Steamboat 按**格子**与**拥有者**生效（码头 Wheeling/Holland +$40，其余 +$20），分配与归属可见 |
 | 机器人 | 规则感知候选生成（连接检查、瓦片库存、颜色/保留轨道、股份与列车限制），启发式打分，可叠加神经网络策略 |
 | 自学习 | `p1846/selfplay.rb` 采样 → `train/nnserver.py` 推理 → `train/trainer.py` 训练 → `train/orchestrate.py` 持续编排 → `train/analyze.py` 每 1000 局分析 |
+| 人类先验 | `train/human_playbook.py` 从 665 局人类对局生成 `human_playbook.md` 与 `human_prior.json`；`p1846/human_prior.rb` 作为软先验，不是规则 |
 | 观战 | 本地网页：版图、回放、玩家资产、公司表、决策理由、训练面板 |
 | 审计 | `audit/log_audit.py` 用真实日志重算线路收入；`verify_game.rb` 逐行动重放并核对现金守恒 |
 | 资源占用 | 子进程低于正常优先级；默认 6 个自战进程；训练只用 2 个 torch 线程 |
@@ -95,12 +96,14 @@ p1846/board.rb         版图与规则数值导出（成本、边费、外域、
 p1846/actions.rb       合法候选生成 + 线路组合搜索（上游 AutoRouter）
 p1846/policy.rb        启发式打分
 p1846/model.rb         神经网络特征编码（128 维状态 / 48 维动作）
-p1846/connectivity.rb  旋转连通 / 外域连接 / 芝加哥门户分析
+p1846/connectivity.rb  旋转连通 / 外域连接 / E/W 完成分析
+p1846/human_prior.rb   人类对局频率先验（软权重，可关闭）
 p1846/selfplay.rb      自战采样进程（写出训练样本）
 train/net.py           策略/价值网络
 train/nnserver.py      本机推理服务（热加载检查点）
 train/trainer.py       训练循环（优势加权模仿 + 价值回归）
 train/analyze.py       每 1000 局行动逻辑分析报告
+train/human_playbook.py 人类对局玩法总结 + 先验生成
 train/orchestrate.py   多进程自战 + 训练 + 评估编排
 audit/                 真实对局日志审计工具与瓦片目录
 web/                   中文观战与训练面板
@@ -145,6 +148,9 @@ ruby verify_game.rb "examples\selfplay\4p-seed606\game.json"
 
 - **持续自战**：6 进程默认一直开局，不点停止不会自己停；每局写入 `train/data/`，
   每 1000 局自动写一份 `train/reports/logic-N.md`。
+- **人类先验（1.2）**：从 665 局 18xx.games 人类对局统计开局/铺轨/买车/分红频率，
+  生成 `train/human_playbook.md` 与 `train/human_prior.json`；策略只把它当软先验
+  （默认 10 分，可设 0 关闭），芝加哥不再写成硬规则。
 - **本地模型**：自战由项目自带的神经网络检查点（`latest.pt`）+ 启发式先验驱动。
   LM Studio 是可选的第三方决策器；Ollama / llama.cpp 等只做检测提示，当前不接入决策。
   不运行任何外部模型也能自战和训练。网页「本地模型检测」会显示检查点、推理服务与外部模型状态。
@@ -166,7 +172,7 @@ ruby verify_game.rb "examples\selfplay\4p-seed606\game.json"
 
 ## 版本
 
-当前 **1.1.0**。变更见 [CHANGELOG.md](CHANGELOG.md)。路线图：补齐特殊能力候选、把铺轨槽位/库存/奖励归属纳入网络特征、加入更严格的对手池评估。
+当前 **1.2.0**。变更见 [CHANGELOG.md](CHANGELOG.md)。路线图：补齐特殊能力候选、把铺轨槽位/库存/奖励归属纳入网络特征、加入更严格的对手池评估。
 
 ## English summary
 

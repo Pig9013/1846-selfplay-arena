@@ -133,7 +133,7 @@ def run_game(cfg_path, timeout=900):
     return proc.returncode, out or "", err or ""
 
 
-def worker(index, seed_base, players, temperature, net_weight, stop_event):
+def worker(index, seed_base, players, temperature, net_weight, human_prior_weight, stop_event):
     consecutive_failures = 0
     while not stop_event.is_set():
         with LOCK:
@@ -150,6 +150,7 @@ def worker(index, seed_base, players, temperature, net_weight, stop_event):
             "strategies": ["neural"] * players,
             "net_url": NET_URL,
             "net_weight": net_weight,
+            "human_prior_weight": human_prior_weight,
             "temperature": temperature,
             "out": str(DATA),
             "max_actions": 3000,
@@ -326,6 +327,7 @@ def main():
     parser.add_argument("--seed", type=int, default=1000)
     parser.add_argument("--temperature", type=float, default=1.5)
     parser.add_argument("--net-weight", type=float, default=15)
+    parser.add_argument("--human-prior-weight", type=float, default=10)
     parser.add_argument("--train-every", type=int, default=6)
     parser.add_argument("--steps", type=int, default=120)
     parser.add_argument("--eval-every", type=int, default=300)
@@ -349,11 +351,12 @@ def main():
         STATE["continuous"] = continuous
         STATE["workers"] = args.workers
         STATE["net_url"] = NET_URL
+        STATE["human_prior_weight"] = args.human_prior_weight
         STATE["game_limit"] = args.games if args.games > 0 else 10**12
 
     threads = [threading.Thread(target=worker,
                                 args=(i, args.seed, args.players, args.temperature,
-                                      args.net_weight, STOP), daemon=True)
+                                      args.net_weight, args.human_prior_weight, STOP), daemon=True)
                for i in range(args.workers)]
     for thread in threads:
         thread.start()
