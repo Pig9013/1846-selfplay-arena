@@ -7,9 +7,9 @@ Une plateforme locale d'auto-jeu et d'auto-apprentissage pour **1846: The Race f
 [![verify](https://github.com/Pig9013/1846-selfplay-arena/actions/workflows/verify.yml/badge.svg)](https://github.com/Pig9013/1846-selfplay-arena/actions/workflows/verify.yml)
 [![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-**Version 1.2.0** · Windows · fonctionne hors ligne · sans compte sur le site ni modèle cloud
+**Version 1.3.0** · Windows · fonctionne hors ligne · sans compte sur le site ni modèle cloud
 
-> **Nouveautés de la version 1.2.0** : auto-jeu continu avec 316 parties utilisables, actions en 48 dimensions et résidu neuronal borné, score de pose tenant compte de la rotation, prior de 665 parties humaines à la place de la règle codée en dur sur Chicago, analyse toutes les 1000 parties. Comparaison complète : [RELEASE_NOTES.en.md](RELEASE_NOTES.en.md).
+Historique des versions et comparaisons : [docs/releases/](docs/releases/) ; instantanés d'exécution : [docs/status/](docs/status/).
 
 ---
 
@@ -145,17 +145,12 @@ Un JSONL par partie, ligne par ligne :
 
 La distribution réelle des coûts de pose concorde aussi avec la règle 6.48 : H16 à $40 à la première pose / $20 en amélioration ; B16 à $20 sans franchir une arête de montagne, $60 en la franchissant ; I11 à $60 pour traverser la rivière ; F18 présente les combinaisons 20/40/60/80.
 
-## État de l'auto-apprentissage (1.2)
+## État actuel
 
-Dernier instantané (2026-10-28 14:58, `train/reports/logic-0318.md`) : **316 parties utilisables, 182 549 décisions, 0 partie dégénérée** ; 96,8 % de Chicago vert, 93,7 % des trois villes Z, 89,9 % au moins un C5, 35,8 % E/W, 8,9 % de faillites.
-
-- **Auto-jeu continu** : 6 processus jusqu'à l'arrêt ; chaque partie écrit `train/games.jsonl` et `train/data/` ; un rapport `train/reports/logic-N.md` toutes les 1000 parties.
-- **Prior humain (1.2)** : les fréquences de 665 parties humaines produisent `human_playbook.md` et `human_prior.json` ; la politique les traite comme un prior souple (10 par défaut, 0 le désactive).
-- **Chicago (1.2)** : le codage en dur de la v1.1 (D6 +30/+55/+90/+125, C5 +40, gare de Chicago +58, distance au domicile) a été supprimé. Chicago n'apparaît plus que par les revenus génériques, la connectivité et le prior humain ; les 96,8 % de Chicago vert sont appris, pas écrits dans le score.
-- **E/W (1.2)** : rejoindre l'autre côté donne +55, le premier côté +14, s'approcher du côté manquant +2 par hex ; plus de couplage avec Chicago.
-- **Plus grand écart** : E/W à 35,8 %, contre 98,8 % dans les 665 parties humaines. La cause est la planification au niveau de la compagnie : IC ne court que vers W, GT/ERIE/NYC/PRR/B&O que vers E, aucune compagnie ne relie les deux.
-- **Pas de MCTS** : les positions du moteur ne peuvent pas être clonées à faible coût ; le classement de candidats, la distillation des priors et la pondération par avantage remplacent la recherche arborescente.
-- **Taux de victoire** : seulement 2 parties d'évaluation, 0 victoire. L'échantillon est trop petit pour juger le réseau, encore moins pour affirmer qu'il dépasse les humains.
+- **Diagnostic 1003 parties** (2026-10-28 17:47, `examples/reports/logic-1003.md`) : 1 057 fichiers utilisables, 590 721 décisions, 0 dégénérée ; 95,9 % de Chicago vert, 85,7 % des trois villes Z, 88,5 % au moins un C5, 41,9 % E/W, 6,6 % de faillites.
+- **Dernière exécution relancée** (`train/status.json`) : 361 parties, 207 227 décisions, 301 étapes d'entraînement, 0 dégénérée ; réseau 192, CUDA, sièges mixtes, prior humain 20, arrêtée.
+- **Principaux écarts** : E/W 41,9 % contre 98,8 % chez les humains ; 4-train 3,14 arrêts contre 3,84 ; participations croisées 2,23 compagnies. La cause est la planification au niveau de la compagnie, pas un bonus global de plus.
+- Détails : [docs/releases/](docs/releases/) ; état daté : [docs/status/](docs/status/).
 
 ## Limites connues
 
@@ -166,7 +161,7 @@ Dernier instantané (2026-10-28 14:58, `train/reports/logic-0318.md`) : **316 pa
 
 ## Version
 
-Actuellement **1.2.0**. Comparaison complète avec 1.0.0 : [RELEASE_NOTES.en.md](RELEASE_NOTES.en.md) ; changements par version : [CHANGELOG.md](CHANGELOG.md). Feuille de route : compléter les candidats de capacités spéciales, intégrer les emplacements de pose, l'inventaire et l'attribution des bonus aux caractéristiques du réseau, ajouter une évaluation plus stricte sur un pool d'adversaires, et traiter d'abord la planification E/W au niveau des compagnies.
+Actuellement **1.3.0**. Historique, comparaisons et notes de version : [docs/releases/](docs/releases/) ; changements d'ingénierie : [CHANGELOG.md](CHANGELOG.md). Feuille de route : traiter d'abord la planification E/W au niveau des compagnies, la longueur des lignes à 4 trains et les participations croisées.
 
 ## Résumé
 
@@ -176,11 +171,11 @@ licence MIT, arbitre chaque action ; ce projet ajoute la génération de candida
 consciente des règles, une interface de plateau et de rejeu pilotée par les
 données, une boucle d'auto-apprentissage à la KataGo et un auditeur de règles sur
 journaux réels (95 journaux, 69 494 revenus de lignes recalculés, 99,99 % de
-concordance). Version 1.2.0. Le dernier échantillon de 316 parties compte
-0 partie dégénérée et 182 549 décisions ; un corpus de 665 parties humaines
-fournit un prior souple. Le principal écart restant est E/W (35,8 % contre
-98,8 % chez les humains). Des parties d'exemple et des échantillons
-d'entraînement compressés se trouvent sous `examples/` et dans la release 1.2.0.
+concordance). Version 1.3.0. Le diagnostic de 1 057 parties compte
+590 721 décisions et 0 partie dégénérée ; un corpus de 665 parties humaines
+fournit un prior souple. Le principal écart restant est E/W (41,9 % contre
+98,8 % chez les humains) et la longueur des lignes à 4 trains (3,14 contre
+3,84 arrêts). Parties, échantillons et rapports se trouvent sous `examples/`.
 Le dépôt ne redistribue ni le moteur de règles, ni le runtime Ruby, ni aucun
 élément officiel de 1846.
 

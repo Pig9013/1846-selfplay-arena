@@ -9,7 +9,7 @@ A local **1846: The Race for the Midwest** self-play and self-learning platform:
 
 **Version 1.3.0** · Windows · runs offline · no site account or cloud model required
 
-> **What changed from 1.0.0**: continuous self-play, 48-wide action features and bounded neural residuals, revenue-first track scoring, a 665-game human prior replacing the hard-coded Chicago rule, margin-weighted winner learning ($500 per step), and per-1000-game analysis. Full comparison: [RELEASE_NOTES.en.md](RELEASE_NOTES.en.md).
+Version history and release notes live in [docs/releases/](docs/releases/); dated run snapshots live in [docs/status/](docs/status/).
 
 ---
 
@@ -34,6 +34,8 @@ The fine details of 18xx rules (terrain costs, offboard revenue changing by phas
 | Bots | Rules-aware candidate generation (connection checks, tile stock, colour/preserved-track checks, share and train limits), heuristic scoring, optional neural policy overlay |
 | Self-learning | `p1846/selfplay.rb` sampling → `train/nnserver.py` inference → `train/trainer.py` training → `train/orchestrate.py` continuous orchestration → `train/analyze.py` per-1000-game analysis |
 | Human prior | `train/human_playbook.py` builds `human_playbook.md` and `human_prior.json` from 665 human games; `p1846/human_prior.rb` uses them as a soft prior, not a rule |
+| Human table | `/human.html`: 1 human + 2 AI, 18xx.games-style board/companies/market/depot/action dock, undo, private-price ladder and seller consent; writes full logs and behaviour-cloning samples |
+| GPU | `train/trainer.py` / `nnserver.py` use CUDA when available; Ruby rules remain CPU |
 | Spectating | Local web UI: board, replay, player assets, company table, decision reasons and a training panel |
 | Audit | `audit/log_audit.py` recomputes route revenues from real logs; `verify_game.rb` replays every action and checks cash conservation |
 | Resources | Child processes run below normal priority; 6 self-play workers by default; training uses only 2 torch threads |
@@ -91,8 +93,12 @@ python tests\test_audit.py       :: auditor unit test (also run by CI)
 ## Repository structure
 
 ```
-RELEASE_NOTES.md        full 1.2.0 vs 1.0.0 comparison (Chinese)
-RELEASE_NOTES.en.md     English release notes
+docs/releases/          version history, comparisons and release notes
+docs/status/            dated run snapshots
+examples/reports/       analysis report examples (1003 / 316 / A-B)
+examples/selfplay/      self-play game samples (v1.0 + v1.3)
+examples/training/      training sample examples
+build_web.py            inline web/human_* into web/human.html
 server.py               local HTTP service, game/training management, static UI
 arena.rb                single-game self-play loop: candidates → score/net → engine
 engine_boot.rb          native Ruby loading adapter (skips browser-only JS)
@@ -150,21 +156,12 @@ One JSONL per game, one line per record:
 
 The observed track-cost distribution also matches rule 6.48: H16 first lay $40 / upgrade $20; B16 $20 without crossing the mountain edge, $60 across it; I11 $60 across the river; F18 shows the 20/40/60/80 combination.
 
-## Self-learning status (1.2)
+## Current status
 
-Latest snapshot (2026-10-28 14:58, `train/reports/logic-0318.md`): **316 usable games, 182,549 decisions, 0 degenerate**; 96.8% green Chicago, 93.7% all three Z cities, 89.9% at least one C5, 35.8% E/W, 8.9% bankruptcy.
-
-- **Continuous self-play**: 6 workers run until stopped; each game writes `train/games.jsonl` and `train/data/`; a `train/reports/logic-N.md` report is written every 1000 games.
-- **Human prior (1.2)**: frequencies from 665 18xx.games human games produce `train/human_playbook.md` and `train/human_prior.json`. The policy treats them as a soft prior (default 10, 0 disables).
-- **Chicago (1.2)**: the v1.1 hard-coding (D6 +30/+55/+90/+125, C5 +40, Chicago station +58, home-to-Chicago distance) is gone. Chicago now appears only through generic revenue, connectivity and the human frequency prior; the 96.8% green-Chicago rate is learned, not written into the scorer.
-- **Feature repair (v1.1)**: action-type bits are no longer zero; action vectors are 48-wide; offboard links, rotation-aware connectivity and Chicago gateway features were added; old 40-wide and degenerate samples are filtered.
-- **Track repair (v1.1)**: scoring uses the rotated tile; connecting an offboard gives `+42 + 0.6×revenue`, pointing at one without connecting `−30`; C&WI's free Chicago token is actually used.
-- **E/W completion (1.2)**: joining the other side gives `+55`, the first side `+14`, approaching the missing side `+2` per hex; no Chicago coupling.
-- **Scale repair**: network scores are standardised per decision and added at weight 15, with 5% uniform exploration, avoiding the old “pass forever” collapse.
-- **Local models**: self-play is driven by the project's `latest.pt` + heuristic prior. LM Studio is an optional third-party decision backend; Ollama / llama.cpp are detection-only. No external model is required. The “local model detection” panel shows the checkpoint, inference service and external endpoints.
-- **Largest gap**: E/W is only 35.8%, versus 98.8% in 665 human games. The cause is company-level route planning: in a typical game IC runs only W, while GT/ERIE/NYC/PRR/B&O run only E; no company spans both.
-- **No MCTS**: engine positions cannot be cloned cheaply, so candidate ranking + prior distillation + advantage weighting replace tree search.
-- **Win rate is not a conclusion**: only 2 evaluation games, 0 wins. The sample is too small to judge the network, let alone claim it beats humans.
+- **1003-game diagnostic** (2026-10-28 17:47, `examples/reports/logic-1003.md`): 1,057 usable files, 590,721 decisions, 0 degenerate; 95.9% green Chicago, 85.7% all three Z cities, 88.5% C5, 41.9% E/W, 6.6% bankruptcy.
+- **Latest restarted run** (`train/status.json`): 361 games, 207,227 decisions, 301 training steps, 0 degenerate; 192-wide net, CUDA, mixed seats, human prior 20, stopped.
+- **Largest gaps**: E/W 41.9% vs human 98.8%; 4-train 3.14 stops vs 3.84; cross-holding 2.23 corps. The cause is company-level route planning, not another global bonus.
+- Version history and the full “what is still unsolved” list: [docs/releases/](docs/releases/); dated snapshots: [docs/status/](docs/status/).
 
 ## Known limitations
 
@@ -172,11 +169,12 @@ Latest snapshot (2026-10-28 14:58, `train/reports/logic-0318.md`): **316 usable 
 - Bot candidates do not yet cover every private-company ability or train trading between corporations.
 - The web board is a data-driven schematic: values, orientation and adjacency match the rules, but it is not the official artwork.
 - The complete action sequence of real games cannot be fetched from the site API (archived games return empty actions), and local logs hide private-company allocation; the audit therefore uses “board + revenue recomputation”, not a full replay.
-- E/W completion and company-level cross-region planning remain the top behavioural gap; Chicago may be over-concentrated at 96.8%; bankruptcy is 8.9% in the latest sample.
+- E/W completion and company-level cross-region planning remain the top behavioural gap; the 4-train only runs 3.14 stops vs the human 3.84; bankruptcy is 6.6% in the 1003-game diagnostic.
+- The 1003-game diagnostic predates the final E/W +30 change; the current 361-game run has no fresh 1000-game report yet.
 
 ## Version
 
-Current **1.2.0**. Full comparison with 1.0.0: [RELEASE_NOTES.en.md](RELEASE_NOTES.en.md); per-version changes: [CHANGELOG.md](CHANGELOG.md). Roadmap: complete special-ability candidates, add track slots/stock/bonus attribution to network features, evaluate against a stricter opponent pool, and solve company-level E/W planning first.
+Current **1.3.0**. Version history, comparisons and release notes: [docs/releases/](docs/releases/); per-version engineering changes: [CHANGELOG.md](CHANGELOG.md). Roadmap: solve company-level E/W planning, 4-train route length and cross-holding first; then evaluate larger networks or search.
 
 ## License and notices
 

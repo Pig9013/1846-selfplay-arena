@@ -9,7 +9,7 @@
 
 **版本 1.3.0** · Windows · 离线运行 · 不依赖网站账号和云端模型
 
-> **1.3.0 相对 1.0.0 的核心变化**：持续自战与数百局有效样本、48 维动作特征与有界网络残差、收益优先的铺轨评分、665 局人类先验替代芝加哥硬编码、冠军按 $500 差额加权的学习、每 1000 局自动行动分析。完整对比见 [RELEASE_NOTES.md](RELEASE_NOTES.md)。
+版本更新与新旧对比统一见 [docs/releases/](docs/releases/)；当前运行状态见 [docs/status/](docs/status/)。
 
 ---
 
@@ -34,7 +34,7 @@
 | 机器人 | 规则感知候选生成（连接检查、瓦片库存、颜色/保留轨道、股份与列车限制），启发式打分，可叠加神经网络策略 |
 | 自学习 | `p1846/selfplay.rb` 采样 → `train/nnserver.py` 推理 → `train/trainer.py` 训练 → `train/orchestrate.py` 持续编排 → `train/analyze.py` 每 1000 局分析 |
 | 人类先验 | `train/human_playbook.py` 从 665 局人类对局生成 `human_playbook.md` 与 `human_prior.json`；`p1846/human_prior.rb` 作为软先验，不是规则 |
-| 人类席位 | `p1846/human_seat.rb` / `p1846/human_http.rb` 让人类坐一席；网页 `/human.html` 是 1 人 + 2 AI 的逐步对局，写出 `train/human_data/*.jsonl` 供行为克隆 |
+| 人类席位 | `p1846/human_seat.rb` / `p1846/human_http.rb` 让人类坐一席；网页 `/human.html` 是 1 人 + 2 AI 的 18xx.games 式对局界面（版图 / 玩家 / 公司 / 股市 / 车场 / 动作栏 / 记录），写出 `train/human_data/*.jsonl` 供行为克隆，并把完整记录写到 `runs/human/对局日志.txt` |
 | GPU | `train/trainer.py` / `nnserver.py` 自动使用 CUDA；Ruby 规则引擎仍在 CPU |
 | 观战 | 本地网页：版图、回放、玩家资产、公司表、决策理由、训练面板 |
 | 审计 | `audit/log_audit.py` 用真实日志重算线路收入；`verify_game.rb` 逐行动重放并核对现金守恒 |
@@ -93,8 +93,12 @@ python tests\\test_audit.py       :: 审计器单元测试（CI 也跑这个）
 ## 仓库结构
 
 ```
-RELEASE_NOTES.md       1.2.0 与 1.0.0 的完整对比（中文）
-RELEASE_NOTES.en.md    English release notes
+docs/releases/         版本更新、新旧对比、发布记录
+docs/status/           带日期的运行状态快照
+examples/reports/      自战分析报告示例（1003 局 / 316 局 / A-B）
+examples/selfplay/     自战对局示例（v1.0 + v1.3）
+examples/training/     训练样本示例
+build_web.py           把 web/human_* 打包成单文件 web/human.html
 server.py              本机 HTTP 服务、对局/训练管理、静态页面
 arena.rb               单局自战循环：候选生成 → 打分/网络 → 引擎执行
 engine_boot.rb         原生 Ruby 加载适配（跳过仅供浏览器的 JS 段）
@@ -107,6 +111,7 @@ p1846/model.rb         神经网络特征编码（128 维状态 / 48 维动作�
 p1846/connectivity.rb  旋转连通 / 外域连接 / E/W 完成分析
 p1846/human_prior.rb   人类对局频率先验（软权重，可关闭）
 p1846/human_seat.rb    人类席位 CLI，记录完整状态-动作样本
+p1846/human_ui.rb      人类界面的动作清单/中文标签（只描述，不决策）
 p1846/selfplay.rb      自战采样进程（写出训练样本）
 train/net.py           策略/价值网络
 train/nnserver.py      本机推理服务（热加载检查点）
@@ -154,33 +159,12 @@ ruby verify_game.rb "examples\selfplay\4p-seed606\game.json"
 
 铺轨费用的真实分布也与规则 6.48 一致：H16 首铺 $40 / 升级 $20；B16 不跨山边 $20、跨过 $60；I11 跨河 $60；F18 出现 20/40/60/80 组合。
 
-## 自学习现状（1.2）
+## 当前状态
 
-最新快照（2026-10-28 14:58，`train/reports/logic-0318.md`）：**316 局可用、182,549 个决策、0 退化**；96.8% 绿芝加哥、93.7% Z 三城全升级、89.9% 至少一次 C5、35.8% E/W、8.9% 破产。
-
-- **持续自战**：6 进程默认一直开局，不点停止不会自己停；每局写入 `train/games.jsonl` 与 `train/data/`，
-  每 1000 局自动写一份 `train/reports/logic-N.md`。
-- **人类先验（1.2）**：从 665 局 18xx.games 人类对局统计开局/铺轨/买车/分红频率，
-  生成 `train/human_playbook.md` 与 `train/human_prior.json`；策略只把它当软先验
-  （默认 10 分，可设 0 关闭）。
-- **芝加哥（1.2）**：删除 v1.1 的 D6 升级 +30/+55/+90/+125、C5 +40、芝加哥站 +58、
-  home 到芝加哥距离等硬编码。芝加哥现在只通过通用收入、连通性和人类频率先验出现；
-  96.8% 的绿芝加哥是学出来的，不是写死的。
-- **特征修复（v1.1）**：动作类型位不再全为 0，动作向量 48 维；新增外域连接、
-  旋转连通、芝加哥门户等特征；旧版 40 维/退化样本会被训练器过滤。
-- **铺轨修复（v1.1）**：铺轨评分看旋转后的真实连通；接通外域 `+42 + 0.6×收入`，
-  朝外不接 `−30`；C&WI 的免费芝加哥站会被实际使用。
-- **E/W 补全（1.2）**：已有 E 或 W 时接通另一半 `+55`，第一次接通任一侧 `+14`，
-  向缺失侧靠近每格 `+2`；不再绑定芝加哥。
-- **尺度修复**：网络分数按决策标准化后以 15 分权重叠加，采样带 5% 均匀探索，
-  避免早期「永远 pass」把整局锁死。
-- **本地模型**：自战由项目自带的神经网络检查点（`latest.pt`）+ 启发式先验驱动。
-  LM Studio 是可选的第三方决策器；Ollama / llama.cpp 等只做检测提示，当前不接入决策。
-  不运行任何外部模型也能自战和训练。网页「本地模型检测」会显示检查点、推理服务与外部模型状态。
-- **最大差距**：E/W 只有 35.8%，人类 665 局是 98.8%。原因不是「不知道 E/W 值钱」，
-  而是公司级路线规划：典型局里 IC 只跑 W，GT/ERIE/NYC/PRR/B&O 只跑 E，没有一家公司把两边串起来。
-- 没有 MCTS：引擎局面无法廉价克隆，当前用「候选排序 + 先验蒸馏 + 优势加权」代替树搜索。
-- 胜率仍然只是参考：当前只有 2 局评估、0 胜，样本太小，**不能据此判断网络强弱，更不能说超过人类**。
+- **1003 局诊断**（2026-10-28 17:47，`examples/reports/logic-1003.md`）：1057 个可用文件、590,721 个决策、0 退化；95.9% 绿芝加哥、85.7% Z 三城全升级、88.5% C5、41.9% E/W、6.6% 破产。
+- **最近重启运行**（`train/status.json`）：361 局、207,227 决策、301 训练步、0 退化；192 宽网络、CUDA、mixed 席位、human prior 20，已停止。
+- **最大差距**：E/W 41.9% vs 人类 98.8%；4 车 3.14 站 vs 3.84；交叉持股 2.23 家。原因不是再加一个全局加分，而是公司级路线规划。
+- 版本更新、完整对比和“哪些没解决”见 [docs/releases/](docs/releases/)；带日期的运行快照见 [docs/status/](docs/status/)。
 
 ## 已知限制
 
@@ -191,7 +175,7 @@ ruby verify_game.rb "examples\selfplay\4p-seed606\game.json"
 
 ## 版本
 
-当前 **1.2.0**。相对 1.0.0 的完整对比见 [RELEASE_NOTES.md](RELEASE_NOTES.md)，逐版本变更见 [CHANGELOG.md](CHANGELOG.md)。路线图：补齐特殊能力候选、把铺轨槽位/库存/奖励归属纳入网络特征、加入更严格的对手池评估，并优先解决公司级 E/W 路线规划。
+当前 **1.3.0**。版本更新、完整对比和发布记录统一见 [docs/releases/](docs/releases/)；逐条工程变更见 [CHANGELOG.md](CHANGELOG.md)。路线图：优先解决公司级 E/W 长线规划、4 车跑满、交叉持股，再评估更大网络/搜索。
 
 ## English summary
 
@@ -200,12 +184,11 @@ checkout of the MIT-licensed [tobymao/18xx](https://github.com/tobymao/18xx)
 engine judges every action; this project adds rules-aware candidate generation,
 a data-driven board/replay UI, a KataGo-style self-play training loop and a
 real-log rule auditor (95 logs, 69,494 route revenues recomputed, 99.99% match).
-Version 1.2.0. The latest 316-game sample has 0 degenerate games and
-182,549 decisions; a 665-game human corpus supplies a soft opening/track prior.
-The largest remaining gap is E/W completion (35.8% vs 98.8% in human games).
-Sample games and compressed training samples live under `examples/` and in the
-release. The repository does not vendor the rules engine, the Ruby runtime, or
-any official 1846 assets.
+Version 1.3.0. The 1003-game diagnostic has 1,057 usable files and 590,721
+decisions; E/W is still 41.9% vs 98.8% in 665 human games, and the 4-train only
+runs 3.14 stops vs 3.84. Sample games, training samples and analysis reports
+live under `examples/`. The repository does not vendor the rules engine, the
+Ruby runtime, or any official 1846 assets.
 
 ## 许可与声明
 
