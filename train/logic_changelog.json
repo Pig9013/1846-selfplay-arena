@@ -33,7 +33,9 @@
       "破产/过短（<200 非 pass 行动）的对局不再进入训练。",
       "报告新增车辆使用率（AI vs 人类停靠数）、玩家持股数（交叉持股）与冠军差额/学习权重。",
       "升级分城市/普通：城市升级 +26，普通路线升级只 +4 且无城/外域收益时再 -20；人类先验对普通升级瓦只保留 25%。",
-      "人类日志里的典型 E/W 路线（GT 4车、NYC 5车、IC 4车、C&O 4/6车）写入 playbook；对 E/W 主力公司的长车购买只加软先验，不写死。"
+      "人类日志里的典型 E/W 路线（GT 4车、NYC 5车、IC 4车、C&O 4/6车）写入 playbook；对 E/W 主力公司的长车购买只加软先验，不写死。",
+      "自战席位策略随机混合（neural/balanced/growth/income/random），避免固定分类；growth 不再无脑 withhold，优先保列车现金。",
+      "新增人类席位 p1846/human_seat.rb，记录 state/action；新增 train/human_bc.py 做 behavior cloning。"
     ]
   }
 ]

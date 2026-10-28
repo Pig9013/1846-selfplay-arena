@@ -112,6 +112,7 @@ train/nnserver.py      本机推理服务（热加载检查点）
 train/trainer.py       训练循环（优势加权模仿 + 价值回归）
 train/analyze.py       每 1000 局行动逻辑分析报告
 train/human_playbook.py 人类对局玩法总结 + 先验生成
+train/human_bc.py      人类席位 behavior cloning（单独 checkpoint）
 train/orchestrate.py   多进程自战 + 训练 + 评估编排
 audit/                 真实对局日志审计工具与瓦片目录
 web/                   中文观战与训练面板

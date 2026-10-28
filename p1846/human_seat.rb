@@ -31,7 +31,7 @@ module P1846
         trains = entity.trains.map(&:name).join(',')
         puts "现金 $#{entity.cash}  列车 [#{trains}]  车站 #{entity.tokens.count(&:used)}"
       end
-      limit = [list.size, 24].min
+      limit = [list.size, 12].min
       limit.times do |i|
         c = list[i]
         detail = c[:info].is_a?(Hash) ? c[:info].slice(:hex, :tile, :city, :kind, :corp, :par, :company, :train) : {}
@@ -68,7 +68,8 @@ module P1846
           abort 'quit' if answer.nil? || answer.strip.downcase == 'q'
 
           choice = answer.strip.empty? ? 0 : answer.to_i
-          choice = 0 unless choice.between?(0, list.size - 1)
+          allowed = [list.size, 12].min
+          choice = 0 unless choice.between?(0, allowed - 1)
           state = P1846.state_features(bot.game, entity)
           actions = list.take(12).map { |c| P1846.action_features(bot.game, c, entity) }
           begin

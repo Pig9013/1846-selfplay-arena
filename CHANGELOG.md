@@ -26,6 +26,23 @@ Revenue-first tile scoring, margin-weighted winner learning, and route/equity di
 - Reports now include route stops by train vs human baseline, holdings per
   player (cross-holding), and winner margin/learning weight.
 
+### Added
+
+- `p1846/human_seat.rb`: interactive human seat using the same rules engine and
+  candidate generator; logs state/action/chosen samples to
+  `train/human_data/*.jsonl`.
+- `train/human_bc.py`: behaviour cloning on human-seat samples, with a separate
+  checkpoint so it can be evaluated before mixing into self-play.
+- Mixed self-play strategies: each game draws seats from
+  neural/balanced/growth/income/random, instead of a fixed per-seat label.
+
+### Fixed
+
+- Growth-style presidents no longer withhold indefinitely. The dividend policy
+  first reserves cash for the next train; when the company already has trains
+  and is not short, it pays out. This removes a common growth/C&O bankruptcy
+  path.
+
 ### Validation
 
 - Route stops: 4-train 3.18 vs human 3.84; 5-train 4.53 vs 4.87;
