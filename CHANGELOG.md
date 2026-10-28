@@ -116,9 +116,11 @@ Revenue-first tile scoring, margin-weighted winner learning, and route/equity di
   step-270 192-wide function at `checkpoints/step270-192.pt`. A/B did not show
   512 is better, so the live checkpoint was reverted to 192 (now step 301);
   512 remains at `checkpoints/512-step275.pt`. 1024 was not attempted.
-- Replay data kept to the newest 700 games (about 0.74 GB); training buffer is
-  600 games (~253k decisions). Old archives removed. Low-quality/bankrupt games
-  are still filtered by the trainer.
+- Replay data was pruned to the newest 700 games (about 0.74 GB) at 18:53;
+  training continued and the live tree is currently 1,054 games / about 1.16 GB.
+  Run `train/prune_data.py --keep 700 --apply` to return to 700. Training buffer
+  is 600 games (~253k decisions). Old archives removed. Low-quality/bankrupt
+  games are still filtered by the trainer.
 - Route search results are cached per game action/company to avoid repeated
   AutoRouter work in UI/evaluation calls.
 
