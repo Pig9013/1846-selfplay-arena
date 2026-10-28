@@ -111,6 +111,7 @@ p1846/model.rb         神经网络特征编码（128 维状态 / 48 维动作�
 p1846/connectivity.rb  旋转连通 / 外域连接 / E/W 完成分析
 p1846/human_prior.rb   人类对局频率先验（软权重，可关闭）
 p1846/human_seat.rb    人类席位 CLI，记录完整状态-动作样本
+p1846/human_http.rb    人类桌桥接：撤回、私营价格、完整日志
 p1846/human_ui.rb      人类界面的动作清单/中文标签（只描述，不决策）
 p1846/selfplay.rb      自战采样进程（写出训练样本）
 train/net.py           策略/价值网络
@@ -122,7 +123,6 @@ train/human_bc.py      人类席位 behavior cloning（单独 checkpoint）
 train/orchestrate.py   多进程自战 + 训练 + 评估编排
 audit/                 真实对局日志审计工具与瓦片目录
 web/                   中文观战与训练面板
-examples/              自战样例（对局 JSON、引擎日志、训练样本）
 ```
 
 ## 数据格式

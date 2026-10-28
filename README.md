@@ -110,6 +110,9 @@ p1846/policy.rb         heuristic scoring
 p1846/model.rb          neural feature encoding (128 state / 48 action)
 p1846/connectivity.rb   rotation-aware connectivity / offboard links / E-W completion analysis
 p1846/human_prior.rb    human-game frequency prior (soft weight, can be disabled)
+p1846/human_seat.rb     human-seat CLI, records state/action samples
+p1846/human_http.rb     human-table bridge: undo, private prices, full log
+p1846/human_ui.rb       human-table action list/Chinese labels (describes, never decides)
 p1846/selfplay.rb       self-play sampling process (writes training samples)
 train/net.py            policy/value network
 train/nnserver.py       local inference service (hot-reloads checkpoints)
@@ -119,7 +122,6 @@ train/human_playbook.py human play summary + prior generation
 train/orchestrate.py    multi-process self-play + training + evaluation orchestration
 audit/                  real-log audit tools and tile catalogue
 web/                    Chinese spectating and training UI
-examples/               sample games (JSON, engine logs, training samples)
 ```
 
 ## Data formats
