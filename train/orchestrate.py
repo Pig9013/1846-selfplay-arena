@@ -134,14 +134,20 @@ def run_game(cfg_path, timeout=900):
     return proc.returncode, out or "", err or ""
 
 
-STRATEGY_POOL = ["neural"] * 5 + ["balanced", "growth", "income", "random"]
+# The two focused personas are intentionally rarer (0.5 vs 1) so they add
+# pressure without taking over the self-play distribution.
+STRATEGY_POOL = [("neural", 5.0), ("balanced", 1.0), ("growth", 1.0),
+                 ("income", 1.0), ("random", 1.0),
+                 ("chicago_connector", 0.5), ("zone_connector", 0.5)]
 
 
 def make_strategies(players, seed, mode="mixed"):
     if mode == "neural":
         return ["neural"] * players
     rng = random.Random(seed)
-    return [rng.choice(STRATEGY_POOL) for _ in range(players)]
+    names = [name for name, _ in STRATEGY_POOL]
+    weights = [weight for _, weight in STRATEGY_POOL]
+    return rng.choices(names, weights=weights, k=players)
 
 
 def worker(index, seed_base, players, temperature, net_weight, human_prior_weight,
@@ -271,9 +277,11 @@ def training_loop(stop_event, every=6, steps=120, buffer=1200, min_new=2, keep=4
                         STATE["loss"] = round(stats["loss"], 4)
                         STATE["dataset"] = len(data)
                         STATE["checkpoint_step"] = step
+                        STATE["device"] = stats.get("device", "cpu")
                     with LOG.open("a", encoding="utf-8") as log:
                         log.write(json.dumps({"step": step, "games": len(games), "samples": len(data),
-                                              **{k: round(v, 4) for k, v in stats.items()},
+                                              **{k: (round(v, 4) if isinstance(v, (int, float)) else v)
+                                                 for k, v in stats.items()},
                                               "time": time.time()}) + "\n")
             prune_buffer(keep)
         stop_event.wait(every)

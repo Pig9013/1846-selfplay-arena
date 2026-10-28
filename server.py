@@ -25,12 +25,14 @@ TRAIN_GAMES = ROOT / "train" / "games.jsonl"
 TRAIN_REPORTS = ROOT / "train" / "reports"
 TRAIN_SCRIPT = ROOT / "train" / "orchestrate.py"
 RUBY = ROOT / "runtime/rubyinstaller-3.4.9-1-x64/bin/ruby.exe"
-STYLES = {"balanced", "growth", "income", "random", "lmstudio", "neural"}
+STYLES = {"balanced", "growth", "income", "random", "lmstudio", "neural",
+          "chicago_connector", "zone_connector"}
 RUNS.mkdir(exist_ok=True)
 LOCK = threading.RLock()
 LIVE: dict[str, dict] = {}
 ACTIVE: str | None = None
 TRAIN_PROC = None
+HUMAN = {"proc": None, "port": 1847}
 BATCH: dict = {"active": False}
 
 
@@ -391,6 +393,48 @@ def train_snapshot():
             "running": running, "samples": files, "reports": reports}
 
 
+def start_human_game():
+    proc = HUMAN.get("proc")
+    if proc is not None and proc.poll() is None:
+        return {"started": True, "port": HUMAN["port"]}
+    path = RUNS / "human"
+    path.mkdir(exist_ok=True)
+    config = {"players": 3, "seed": int(time.time()) % 1_000_000,
+              "human_seat": "1", "strategies": ["human", "random", "random"],
+              "out": str(ROOT / "train" / "human_data"), "port": HUMAN["port"]}
+    save(path / "config.json", config)
+    env = dict(os.environ, RUBYOPT="-EUTF-8")
+    command = ('chcp 65001 >nul && "' + str(RUBY) + '" p1846/human_http.rb "' +
+               str(path / "config.json") + '"')
+    proc = subprocess.Popen(command, shell=True,
+                            cwd=ROOT, env=env, stdin=subprocess.DEVNULL,
+                            stdout=(path / "human.out.log").open("w", encoding="utf-8"),
+                            stderr=(path / "human.err.log").open("w", encoding="utf-8"),
+                            text=True, encoding="utf-8", errors="replace",
+                            creationflags=subprocess.CREATE_NO_WINDOW)
+    HUMAN["proc"] = proc
+    for _ in range(30):
+        time.sleep(.1)
+        if proc.poll() is not None:
+            break
+        try:
+            with urllib.request.urlopen(f"http://127.0.0.1:{HUMAN['port']}/health", timeout=.5):
+                return {"started": True, "port": HUMAN["port"]}
+        except OSError:
+            continue
+    return {"started": False, "port": HUMAN["port"], "error": "human server did not start"}
+
+
+def stop_human_game():
+    proc = HUMAN.get("proc")
+    if proc is not None and proc.poll() is None:
+        subprocess.run(["taskkill", "/PID", str(proc.pid), "/T", "/F"],
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                       creationflags=subprocess.CREATE_NO_WINDOW, timeout=10)
+    HUMAN["proc"] = None
+    return {"stopped": True}
+
+
 def start_training(payload):
     global TRAIN_PROC
     if TRAIN_PROC is not None and TRAIN_PROC.poll() is None:
@@ -559,7 +603,8 @@ class Handler(BaseHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(blob)
                 return
-            files = {"/": ("web/index.html", "text/html"), "/app.js": ("web/app.js", "text/javascript"),
+            files = {"/": ("web/index.html", "text/html"), "/human.html": ("web/human.html", "text/html"),
+                     "/app.js": ("web/app.js", "text/javascript"),
                      "/style.css": ("web/style.css", "text/css")}
             if path not in files:
                 return self.respond({"error": "找不到此页面。"}, 404)
@@ -606,6 +651,10 @@ class Handler(BaseHTTPRequestHandler):
                              "cancelled": False, "continuous": count == 0}
                     threading.Thread(target=batch_worker, args=(config, count), daemon=True).start()
                 return self.respond(BATCH)
+            if self.path == "/api/human/start":
+                return self.respond(start_human_game())
+            if self.path == "/api/human/stop":
+                return self.respond(stop_human_game())
             if self.path == "/api/train":
                 if raw.get("action") == "stop":
                     return self.respond(stop_training())

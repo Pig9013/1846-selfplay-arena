@@ -99,15 +99,19 @@ module P1846
       if info[:upgrade] && !info[:city_upgrade] && !info[:offboard_link]
         score -= 20.0
       end
-      score += 4.0 if info[:ew_completion]
+      # Completing the *other* half of an E/W pair is the whole point of a
+      # through route; intermediate tiles still get only the small link bonus.
+      score += 30.0 if info[:ew_completion]
+      score += 8.0 if info[:ew_start]
       score += info[:ew_approach].to_i * 1.0
+      score += 10.0 if info[:new_city_revenue].to_i >= 30
       score -= cost * 0.42
       # A bare stub that neither serves a city nor joins an off-board nor runs
       # through a node is usually track sprawl. Keep it slightly negative so
       # "pass and keep the treasury" is a real option.
       if !info[:upgrade] && info[:new_city_revenue].to_i.zero? && !info[:offboard_link] &&
          info[:through_edges].to_i < 2
-        score -= 10.0
+        score -= 30.0
       end
       # Keep a train-buying reserve: track is worth less than a train.
       reserve = entity.trains.empty? ? next_train_price(game) : train_reserve(game, entity)

@@ -18,8 +18,9 @@ from net import PolicyValueNet
 
 ROOT = Path(__file__).resolve().parent
 CKPT = ROOT / "checkpoints" / "latest.pt"
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 LOCK = threading.Lock()
-MODEL = PolicyValueNet()
+MODEL = PolicyValueNet().to(DEVICE)
 MODEL.eval()
 MTIME = None
 STEP = 0
@@ -37,6 +38,7 @@ def maybe_reload():
     try:
         state = torch.load(CKPT, map_location="cpu", weights_only=True)
         MODEL.load_state_dict(state["model"])
+        MODEL.to(DEVICE)
         MODEL.eval()
         STEP = int(state.get("step", 0))
         LOADED = True
@@ -59,7 +61,7 @@ class Handler(BaseHTTPRequestHandler):
             return
         maybe_reload()
         body = json.dumps({"ok": True, "step": STEP, "loaded": LOADED,
-                           "checkpoint": str(CKPT)}).encode()
+                           "device": DEVICE.type, "checkpoint": str(CKPT)}).encode()
         self.send_response(200)
         self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", str(len(body)))
@@ -76,8 +78,8 @@ class Handler(BaseHTTPRequestHandler):
         else:
             with LOCK, torch.no_grad():
                 maybe_reload()
-                s = torch.tensor([state], dtype=torch.float32)
-                a = torch.tensor([actions], dtype=torch.float32)
+                s = torch.tensor([state], dtype=torch.float32, device=DEVICE)
+                a = torch.tensor([actions], dtype=torch.float32, device=DEVICE)
                 logits, _value = MODEL(s, a)
                 body = json.dumps({"scores": logits[0].tolist()}).encode()
         self.send_response(200)
@@ -90,7 +92,7 @@ class Handler(BaseHTTPRequestHandler):
 def main(port=18346):
     maybe_reload()
     srv = ThreadingHTTPServer(("127.0.0.1", port), Handler)
-    print(f"[nn] listening on {port}", flush=True)
+    print(f"[nn] listening on {port} device={DEVICE.type}", flush=True)
     srv.serve_forever()
 
 

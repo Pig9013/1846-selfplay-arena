@@ -6,6 +6,7 @@ Samples come from p1846/selfplay.rb: one JSONL per game with decision rows
 import glob
 import json
 import math
+import os
 import random
 import time
 from pathlib import Path
@@ -16,7 +17,9 @@ import torch.nn.functional as F
 from net import ACTION_SIZE, STATE_SIZE, PolicyValueNet
 
 ROOT = Path(__file__).resolve().parent
-torch.set_num_threads(2)
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+if DEVICE.type == "cpu":
+    torch.set_num_threads(2)
 
 
 def list_samples(data_dir):
@@ -71,14 +74,23 @@ def load_games(files):
         winner_weight = result.get("winner_weight")
         if winner_weight is None:
             winner_weight = 1 + max(0, min(int((float(margin or 0) // 500)), 20))
+        try:
+            mtime = os.path.getmtime(path)
+        except OSError:
+            mtime = 0.0
         games.append({"decisions": decisions, "z": result["z"], "scores": scores,
                       "winner": winner, "margin": margin, "winner_weight": int(winner_weight),
-                      "meta": meta})
+                      "mtime": mtime, "meta": meta})
     return games
+
+
+RECENT_GAMES = 100
+RECENT_WINNER_BOOST = 2.0
 
 
 def make_dataset(games, max_actions=12):
     data = []
+    recent = {id(game) for game in sorted(games, key=lambda item: item.get("mtime", 0.0))[-RECENT_GAMES:]}
     for game in games:
         zmap = game["z"]
         winner = str(game.get("winner"))
@@ -90,6 +102,8 @@ def make_dataset(games, max_actions=12):
             # Learn mostly from the winner; the margin to second place controls
             # how strongly. Losers keep a small 0.15 weight for negative signal.
             sample_weight = winner_weight if str(actor) == winner else 0.15
+            if str(actor) == winner and id(game) in recent:
+                sample_weight *= RECENT_WINNER_BOOST
             actions = d["actions"][:max_actions]
             if len(actions) < 2:
                 continue
@@ -132,12 +146,20 @@ def train_once(model, data, steps=120, batch_size=128, lr=4e-4, temperature=18.0
     if len(data) < 64:
         return None
     rng = random.Random(seed)
+    model.to(DEVICE)
     opt = torch.optim.Adam(model.parameters(), lr=lr)
     model.train()
     stats = {"loss": 0.0, "policy": 0.0, "value": 0.0, "n": 0}
     for _ in range(steps):
         batch = rng.sample(data, min(batch_size, len(data)))
         states, actions, mask, chosen, prior, z, sample = pad_batch(batch)
+        states = states.to(DEVICE)
+        actions = actions.to(DEVICE)
+        mask = mask.to(DEVICE)
+        chosen = chosen.to(DEVICE)
+        prior = prior.to(DEVICE)
+        z = z.to(DEVICE)
+        sample = sample.to(DEVICE)
         logits, values = model(states, actions)
         logits = logits.masked_fill(mask == 0, -1e9)
         logp = F.log_softmax(logits, dim=1)
@@ -165,6 +187,7 @@ def train_once(model, data, steps=120, batch_size=128, lr=4e-4, temperature=18.0
         stats["value"] += float(value_loss.detach())
         stats["n"] += 1
     model.eval()
+    stats["device"] = DEVICE.type
     for key in ("loss", "policy", "value"):
         stats[key] /= max(stats["n"], 1)
     return stats

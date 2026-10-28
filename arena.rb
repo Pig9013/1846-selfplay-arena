@@ -7,7 +7,8 @@ require 'net/http'
 
 module Arena1846
   VERSION = '1.3.0'
-  STYLES = %w[balanced growth income random lmstudio neural].freeze
+  STYLES = %w[balanced growth income random lmstudio neural
+             chicago_connector zone_connector].freeze
 
   # The upstream Ruby path walker validates individual routes. Search combinations
   # here because the site's combination optimizer is JavaScript, not native Ruby.
@@ -291,9 +292,65 @@ module Arena1846
         end
       end
       list.each { |c| c[:score] = rng.rand * 100 if s == 'random' && c[:action]['type'] != 'pass' }
+      apply_persona(list, s)
       list = list.sort_by { |c| -c[:score] }.uniq { |c| c[:action] }
       apply_net(list, e) if @net && list.size > 1 && style(e) == 'neural'
       list
+    end
+
+    # A deliberately narrow AI persona: it is allowed to over-value one plan,
+    # the same way a human player might. These are not global rules; they only
+    # exist when the random seat draw selects that persona.
+    CHICAGO_HEX = 'D6'
+    EAST_TARGETS = %w[C17 C21 D22 E23 G21].freeze
+
+    def hex_distance(hex, targets)
+      return 99 unless hex
+
+      frontier = [[hex, 0]]
+      seen = { hex.id => true }
+      until frontier.empty?
+        current, distance = frontier.shift
+        return distance if targets.include?(current.id)
+        next if distance >= 6
+
+        current.neighbors.each_value do |neighbor|
+          next unless neighbor
+          next if seen[neighbor.id]
+
+          seen[neighbor.id] = true
+          frontier << [neighbor, distance + 1]
+        end
+      end
+      99
+    end
+
+    def apply_persona(list, style)
+      return unless %w[chicago_connector zone_connector].include?(style)
+
+      targets = [CHICAGO_HEX] + EAST_TARGETS
+      list.each do |candidate|
+        next unless %w[lay_tile place_token].include?(candidate[:type])
+
+        info = candidate[:info] || {}
+        hex = @game.hex_by_id(info[:hex]) if info[:hex]
+        next unless hex
+
+        if style == 'chicago_connector'
+          distance = hex_distance(hex, targets)
+          candidate[:score] += 70 if distance.zero?
+          candidate[:score] += (7 - distance) * 9 if distance.between?(1, 6)
+          candidate[:score] += 18 if info[:offboard_link] && hex.id != CHICAGO_HEX
+          candidate[:reason] = "芝加哥/E 连接者：#{candidate[:reason]}"
+        else
+          revenue = info[:new_city_revenue].to_f
+          candidate[:score] += revenue * 0.55
+          candidate[:score] += 16 if revenue >= 30
+          candidate[:score] += 5 * info[:through_edges].to_i
+          candidate[:score] += 12 if info[:offboard_link]
+          candidate[:reason] = "经济区连接者：#{candidate[:reason]}"
+        end
+      end
     end
 
     def apply_net(list, entity)

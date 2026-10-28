@@ -20,7 +20,9 @@ from net import ACTION_SIZE, PolicyValueNet
 from trainer import load_games, make_dataset, pad_batch
 
 ROOT = Path(__file__).resolve().parent
-torch.set_num_threads(2)
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+if DEVICE.type == "cpu":
+    torch.set_num_threads(2)
 
 
 def main():
@@ -49,6 +51,7 @@ def main():
             print(f"loaded base {base} step={state.get('step')}")
         except Exception as exc:  # noqa: BLE001
             print(f"base checkpoint not loaded: {exc}")
+    model.to(DEVICE)
     opt = torch.optim.Adam(model.parameters(), lr=args.lr)
     rng = random.Random(0)
     model.train()
@@ -56,6 +59,11 @@ def main():
     for step in range(args.steps):
         batch = rng.sample(data, min(args.batch, len(data)))
         states, actions, mask, chosen, prior, z, sample = pad_batch(batch)
+        states = states.to(DEVICE)
+        actions = actions.to(DEVICE)
+        mask = mask.to(DEVICE)
+        chosen = chosen.to(DEVICE)
+        z = z.to(DEVICE)
         logits, values = model(states, actions)
         logits = logits.masked_fill(mask == 0, -1e9)
         # Pure imitation of the human choice; value head still learns the
@@ -78,7 +86,8 @@ def main():
     model.eval()
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
-    torch.save({"model": model.state_dict(), "step": args.steps, "human_bc": True}, out)
+    torch.save({"model": {k: v.cpu() for k, v in model.state_dict().items()},
+                "step": args.steps, "human_bc": True}, out)
     print(json.dumps({"saved": str(out), "games": len(games), "decisions": len(data),
                       "best_batch_top1": round(best, 3)}, ensure_ascii=False))
 

@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>1846 · 人类与 AI 作战</title>
+<style>
+  :root{color-scheme:dark;--bg:#101315;--panel:#171c1f;--line:#2c363b;--ink:#e8e2d4;--muted:#98a2a6;--accent:#d8a24a;--bad:#d26a5a}
+  *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "Segoe UI",system-ui,sans-serif}
+  header,main{max-width:980px;margin:0 auto;padding:18px}header{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line)}
+  h1{font-size:22px;margin:0;letter-spacing:.04em}a{color:var(--accent);text-decoration:none}
+  .bar{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0}.pill{border:1px solid var(--line);border-radius:999px;padding:6px 12px;background:var(--panel)}
+  .grid{display:grid;grid-template-columns:1.1fr .9fr;gap:16px}@media(max-width:760px){.grid{grid-template-columns:1fr}}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px}.panel h2{font-size:15px;margin:0 0 10px;color:var(--accent);letter-spacing:.06em}
+  button{width:100%;text-align:left;margin:0 0 8px;padding:10px 12px;border:1px solid var(--line);border-radius:9px;background:#1d2427;color:var(--ink);cursor:pointer}
+  button:hover{border-color:var(--accent)}button b{color:var(--accent)}button:disabled{opacity:.5;cursor:wait}
+  .muted{color:var(--muted)}.bad{border-color:var(--bad);color:var(--bad)}.result{font-size:18px;color:var(--accent)}
+  table{width:100%;border-collapse:collapse}td,th{padding:6px;border-bottom:1px solid var(--line);text-align:left;font-size:13px}
+</style>
+</head>
+<body>
+<header><div><h1>1846 · 人类与 AI 作战</h1><div class="muted">1 人类 + 2 随机 AI · 你走一步，AI 才走</div></div><a href="/">← 返回自战实验室</a></header>
+<main>
+  <div class="bar"><span class="pill" id="status">启动中…</span><span class="pill" id="round">—</span><button id="restart" style="width:auto;margin:0;padding:6px 12px">重新开始</button></div>
+  <div class="grid">
+    <section class="panel"><h2>候选行动</h2><div id="candidates" class="muted">等待人类席位…</div></section>
+    <section class="panel"><h2>局面</h2><div id="summary" class="muted">—</div><div id="players" style="margin-top:12px"></div></section>
+  </div>
+</main>
+<script>
+const HUMAN='http://127.0.0.1:1847';
+const $=id=>document.getElementById(id);
+let busy=false;
+async function start(){
+  $('status').textContent='启动人类对局…';
+  try{
+    const r=await fetch('/api/human/start',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
+    const d=await r.json(); if(!d.started) throw new Error(d.error||'启动失败');
+    await refresh();
+  }catch(e){$('status').textContent='启动失败：'+e.message;}
+}
+async function refresh(){
+  try{
+    const r=await fetch(HUMAN+'/state'); const d=await r.json();
+    $('status').textContent=d.finished?'对局结束':(d.human_turn?'轮到你行动':'AI 行动中…');
+    $('round').textContent=(d.round||'')+' / '+(d.phase||'');
+    $('summary').innerHTML='<div>当前：<b>'+(d.entity||'—')+'</b></div><div>现金：$'+(d.cash??'—')+'</div><div>列车：'+(d.trains||[]).join(', ')||'—'+'</div>';
+    $('players').innerHTML='<table><tr><th>玩家</th><th>现金</th><th>公司</th></tr>'+d.players.map(p=>'<tr><td>'+p.name+'</td><td>$'+p.cash+'</td><td>'+(p.companies||[]).join(', ')+'</td></tr>').join('')+'</table>';
+    if(d.finished){ $('candidates').innerHTML='<div class="result">结果：'+JSON.stringify(d.result)+'</div>'; return; }
+    const box=$('candidates');
+    if(!d.human_turn){box.innerHTML='<div class="muted">AI 正在行动，刷新查看下一步。</div>';setTimeout(refresh,1200);return;}
+    box.innerHTML=d.candidates.map(c=>'<button data-i="'+c.index+'"><b>'+c.type+'</b> · '+c.reason+' <span class="muted">['+c.score+'] '+JSON.stringify(c.info)+'</span></button>').join('');
+    box.querySelectorAll('button').forEach(b=>b.onclick=()=>choose(+b.dataset.i));
+  }catch(e){$('status').textContent='连接失败：'+e.message;}
+}
+async function choose(i){
+  if(busy)return;busy=true;document.querySelectorAll('#candidates button').forEach(b=>b.disabled=true);
+  try{
+    const r=await fetch(HUMAN+'/choose',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({index:i})});
+    const d=await r.json(); if(!d.ok) $('status').textContent='该步被引擎拒绝：'+d.error;
+    await refresh();
+  }catch(e){$('status').textContent='提交失败：'+e.message;}
+  busy=false;
+}
+$('restart').onclick=async()=>{await fetch('/api/human/stop',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});await start();};
+start();
+</script>
+</body>
+</html>
