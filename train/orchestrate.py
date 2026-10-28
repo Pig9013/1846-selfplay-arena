@@ -14,6 +14,7 @@ is stopped.  A finite run is still available with --minutes or --games.
 import argparse
 import json
 import os
+import random
 import subprocess
 import sys
 import threading
@@ -133,7 +134,18 @@ def run_game(cfg_path, timeout=900):
     return proc.returncode, out or "", err or ""
 
 
-def worker(index, seed_base, players, temperature, net_weight, human_prior_weight, stop_event):
+STRATEGY_POOL = ["neural"] * 5 + ["balanced", "growth", "income", "random"]
+
+
+def make_strategies(players, seed, mode="mixed"):
+    if mode == "neural":
+        return ["neural"] * players
+    rng = random.Random(seed)
+    return [rng.choice(STRATEGY_POOL) for _ in range(players)]
+
+
+def worker(index, seed_base, players, temperature, net_weight, human_prior_weight,
+           strategy_mode, stop_event):
     consecutive_failures = 0
     while not stop_event.is_set():
         with LOCK:
@@ -147,7 +159,7 @@ def worker(index, seed_base, players, temperature, net_weight, human_prior_weigh
             "players": players,
             "seed": seed,
             "game": game,
-            "strategies": ["neural"] * players,
+            "strategies": make_strategies(players, seed, strategy_mode),
             "net_url": NET_URL,
             "net_weight": net_weight,
             "human_prior_weight": human_prior_weight,
@@ -328,6 +340,7 @@ def main():
     parser.add_argument("--temperature", type=float, default=1.5)
     parser.add_argument("--net-weight", type=float, default=15)
     parser.add_argument("--human-prior-weight", type=float, default=10)
+    parser.add_argument("--strategy-mode", choices=["mixed", "neural"], default="mixed")
     parser.add_argument("--train-every", type=int, default=6)
     parser.add_argument("--steps", type=int, default=120)
     parser.add_argument("--eval-every", type=int, default=300)
@@ -352,11 +365,13 @@ def main():
         STATE["workers"] = args.workers
         STATE["net_url"] = NET_URL
         STATE["human_prior_weight"] = args.human_prior_weight
+        STATE["strategy_mode"] = args.strategy_mode
         STATE["game_limit"] = args.games if args.games > 0 else 10**12
 
     threads = [threading.Thread(target=worker,
                                 args=(i, args.seed, args.players, args.temperature,
-                                      args.net_weight, args.human_prior_weight, STOP), daemon=True)
+                                      args.net_weight, args.human_prior_weight,
+                                      args.strategy_mode, STOP), daemon=True)
                for i in range(args.workers)]
     for thread in threads:
         thread.start()

@@ -413,7 +413,7 @@ def start_training(payload):
     command = [sys.executable, "-u", str(TRAIN_SCRIPT), "--workers", str(workers),
                "--minutes", str(minutes), "--seed", str(seed), "--train-every", "4",
                "--steps", "150", "--net-weight", "15", "--human-prior-weight", str(human_prior_weight),
-               "--temperature", "1.5",
+               "--strategy-mode", "mixed", "--temperature", "1.5",
                "--report-every", "1000", "--eval-every", "300", "--keep", "4000"]
     if minutes == 0:
         command.append("--continuous")

@@ -34,6 +34,7 @@
 | 机器人 | 规则感知候选生成（连接检查、瓦片库存、颜色/保留轨道、股份与列车限制），启发式打分，可叠加神经网络策略 |
 | 自学习 | `p1846/selfplay.rb` 采样 → `train/nnserver.py` 推理 → `train/trainer.py` 训练 → `train/orchestrate.py` 持续编排 → `train/analyze.py` 每 1000 局分析 |
 | 人类先验 | `train/human_playbook.py` 从 665 局人类对局生成 `human_playbook.md` 与 `human_prior.json`；`p1846/human_prior.rb` 作为软先验，不是规则 |
+| 人类席位 | `p1846/human_seat.rb` 在当前规则引擎里让人类坐一席，逐决策选候选，写出 `train/human_data/*.jsonl` 供行为克隆 |
 | 观战 | 本地网页：版图、回放、玩家资产、公司表、决策理由、训练面板 |
 | 审计 | `audit/log_audit.py` 用真实日志重算线路收入；`verify_game.rb` 逐行动重放并核对现金守恒 |
 | 资源占用 | 子进程低于正常优先级；默认 6 个自战进程；训练只用 2 个 torch 线程 |
@@ -104,6 +105,7 @@ p1846/policy.rb        启发式打分
 p1846/model.rb         神经网络特征编码（128 维状态 / 48 维动作）
 p1846/connectivity.rb  旋转连通 / 外域连接 / E/W 完成分析
 p1846/human_prior.rb   人类对局频率先验（软权重，可关闭）
+p1846/human_seat.rb    人类席位 CLI，记录完整状态-动作样本
 p1846/selfplay.rb      自战采样进程（写出训练样本）
 train/net.py           策略/价值网络
 train/nnserver.py      本机推理服务（热加载检查点）

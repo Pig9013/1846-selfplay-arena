@@ -219,10 +219,17 @@ module Arena1846
       end
       if types.include?('dividend')
         target = s == 'income' ? 120 : (s == 'growth' ? 650 : 420)
+        need = P1846::Policy.next_train_price(g)
+        # Growth must not mean "withhold forever". If the company already has
+        # trains and is not short of the next train, pay out; hoarding cash was
+        # what made growth-style presidents starve and go bankrupt.
+        danger = e.trains.empty? || (need.positive? && e.cash < need)
         kind = if e.minor?
                  'half'
-               elsif e.cash < target && g.phase.name != 'IV'
+               elsif danger
                  s == 'growth' ? 'withhold' : 'half'
+               elsif e.cash < target && g.phase.name != 'IV' && e.trains.size < 2
+                 'half'
                else
                  'payout'
                end
