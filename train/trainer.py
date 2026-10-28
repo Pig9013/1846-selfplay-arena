@@ -49,6 +49,8 @@ def load_games(files):
         # reason.
         if meta.get("degenerate") or meta.get("feature_version", 0) < 2:
             continue
+        if meta.get("low_quality") or meta.get("end_reason") == "bankrupt":
+            continue
         if not decisions or not result:
             continue
         for decision in decisions:
@@ -60,7 +62,17 @@ def load_games(files):
                     actions[i] = action[:ACTION_SIZE]
             state = decision.get("state") or []
             decision["state"] = (state + [0.0] * STATE_SIZE)[:STATE_SIZE]
-        games.append({"decisions": decisions, "z": result["z"], "scores": result["scores"],
+        scores = result.get("scores") or {}
+        ranked = sorted(scores.items(), key=lambda item: -float(item[1]))
+        winner = result.get("winner") or (ranked[0][0] if ranked else None)
+        margin = result.get("margin")
+        if margin is None and len(ranked) > 1:
+            margin = float(ranked[0][1]) - float(ranked[1][1])
+        winner_weight = result.get("winner_weight")
+        if winner_weight is None:
+            winner_weight = 1 + max(0, min(int((float(margin or 0) // 500)), 20))
+        games.append({"decisions": decisions, "z": result["z"], "scores": scores,
+                      "winner": winner, "margin": margin, "winner_weight": int(winner_weight),
                       "meta": meta})
     return games
 
@@ -69,10 +81,15 @@ def make_dataset(games, max_actions=12):
     data = []
     for game in games:
         zmap = game["z"]
+        winner = str(game.get("winner"))
+        winner_weight = int(game.get("winner_weight", 1))
         for d in game["decisions"]:
             actor = d.get("actor")
             if actor is None or actor not in zmap:
                 continue
+            # Learn mostly from the winner; the margin to second place controls
+            # how strongly. Losers keep a small 0.15 weight for negative signal.
+            sample_weight = winner_weight if str(actor) == winner else 0.15
             actions = d["actions"][:max_actions]
             if len(actions) < 2:
                 continue
@@ -86,13 +103,14 @@ def make_dataset(games, max_actions=12):
                 "chosen": chosen,
                 "prior": prior,
                 "z": float(zmap[actor]),
+                "weight": float(sample_weight),
             })
     return data
 
 
 def pad_batch(batch, max_actions=12):
     n = max(len(b["actions"]) for b in batch)
-    states, actions, mask, chosen, prior, z = [], [], [], [], [], []
+    states, actions, mask, chosen, prior, z, sample = [], [], [], [], [], [], []
     for b in batch:
         a = b["actions"]
         pad = n - len(a)
@@ -103,9 +121,11 @@ def pad_batch(batch, max_actions=12):
         p = b["prior"] + [0.0] * pad
         prior.append(p)
         z.append(b["z"])
+        sample.append(b.get("weight", 1.0))
     return (torch.tensor(states, dtype=torch.float32), torch.tensor(actions, dtype=torch.float32),
             torch.tensor(mask, dtype=torch.float32), torch.tensor(chosen, dtype=torch.long),
-            torch.tensor(prior, dtype=torch.float32), torch.tensor(z, dtype=torch.float32))
+            torch.tensor(prior, dtype=torch.float32), torch.tensor(z, dtype=torch.float32),
+            torch.tensor(sample, dtype=torch.float32))
 
 
 def train_once(model, data, steps=120, batch_size=128, lr=4e-4, temperature=18.0, seed=0):
@@ -117,7 +137,7 @@ def train_once(model, data, steps=120, batch_size=128, lr=4e-4, temperature=18.0
     stats = {"loss": 0.0, "policy": 0.0, "value": 0.0, "n": 0}
     for _ in range(steps):
         batch = rng.sample(data, min(batch_size, len(data)))
-        states, actions, mask, chosen, prior, z = pad_batch(batch)
+        states, actions, mask, chosen, prior, z, sample = pad_batch(batch)
         logits, values = model(states, actions)
         logits = logits.masked_fill(mask == 0, -1e9)
         logp = F.log_softmax(logits, dim=1)
@@ -125,14 +145,15 @@ def train_once(model, data, steps=120, batch_size=128, lr=4e-4, temperature=18.0
         # Advantage-weighted imitation: actions taken in better outcomes get
         # up-weighted (bounded), so the loss cannot explode the way plain
         # REINFORCE does when the policy moves off a sampled action.
-        weights = torch.exp(z.clamp(-2.0, 2.0))
+        sample = (sample / sample.mean().clamp_min(1e-6)).clamp(max=20.0)
+        weights = torch.exp(z.clamp(-2.0, 2.0)) * sample
         weights = weights / weights.mean().clamp_min(1e-6)
         advantage = -(weights * chosen_logp).mean()
         # Padded candidates must never receive target mass: their prior is 0
         # while real candidates may be negative.
         target = F.softmax(prior.masked_fill(mask == 0, -1e9) / temperature, dim=1)
-        imitation = -((target * logp).sum(dim=1)).mean()
-        value_loss = F.mse_loss(values.gather(1, chosen[:, None]).squeeze(1), z)
+        imitation = -((target * logp).sum(dim=1) * sample).mean()
+        value_loss = (sample * (values.gather(1, chosen[:, None]).squeeze(1) - z) ** 2).mean() / sample.mean().clamp_min(1e-6)
         entropy = -((logp.exp() * logp).sum(dim=1)).mean()
         loss = 0.5 * advantage + 0.35 * imitation + 0.5 * value_loss - 0.02 * entropy
         opt.zero_grad()

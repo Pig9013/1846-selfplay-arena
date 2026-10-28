@@ -164,7 +164,7 @@ def start_run(config, *, from_batch=False):
         path.mkdir()
         save(path / "config.json", config)
         data = {"id": run_id, "config": config, "status": "running", "created": time.time(),
-                "frames": 0, "action_count": 0, "error": None, "version": "1.2.0"}
+                "frames": 0, "action_count": 0, "error": None, "version": "1.3.0"}
         save(path / "summary.json", data)
         LIVE[run_id] = {"summary": data, "state": None, "board": [], "decision": None,
                         "logs": [], "offsets": [], "process": None, "pause": False,

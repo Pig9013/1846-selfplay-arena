@@ -55,6 +55,7 @@ def main():
     c5_games = set()
     d6_games = set()
     ew_corp = Counter()
+    route_len = defaultdict(list)
 
     for game_index, game in enumerate(games):
         label = game_index
@@ -94,6 +95,9 @@ def main():
             elif kind == "run":
                 bonus = event.get("bonus") or ""
                 route = event.get("route") or ""
+                stops = len([part for part in route.split("-") if part])
+                if stops:
+                    route_len[event.get("train")].append(stops)
                 if "E/W" in bonus or "E/W" in route:
                     has_ew = True
                     ew_corp[event.get("corp")] += 1
@@ -152,6 +156,8 @@ def main():
             "c5": round(len(c5_games) / n, 4),
         },
         "ew_corp_norm": norm(ew_corp),
+        "route_len": {train: {"n": len(values), "mean": round(statistics.mean(values), 2)}
+                      for train, values in route_len.items() if values},
         "first_phase": {"d6": dict(d6_first), "ew": dict(ew_first)},
     }
     OUT_JSON.write_text(json.dumps(prior, ensure_ascii=False, indent=2), encoding="utf-8")

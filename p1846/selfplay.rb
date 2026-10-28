@@ -91,20 +91,34 @@ module SelfPlay
     std = Math.sqrt(var).clamp(1.0, Float::INFINITY)
     z = scores.transform_values { |v| ((v - mean) / std).clamp(-2.0, 2.0) }
     actions = bot.game.raw_actions
+    end_reason = bot.game.game_end_reason
     non_pass = actions.count { |action| action['type'] != 'pass' }
     degenerate = non_pass < 30 || actions.none? { |action| action['type'] == 'lay_tile' } ||
                  actions.none? { |action| action['type'] == 'par' }
+    # A bankruptcy or a very short game is not a good operational example.
+    # Keep it out of the training set (it is still written for diagnostics).
+    low_quality = end_reason.to_s == 'bankrupt' || non_pass < 200
+    ranked = scores.sort_by { |_, value| -value }
+    winner = ranked.first&.first
+    margin = ranked.size > 1 ? (ranked[0][1] - ranked[1][1]) : 0.0
+    # The user's reward rule: the winner is the learning target, and every
+    # $500 of margin over second place adds one more unit of weight.
+    winner_weight = 1 + [[(margin / 500.0).floor, 0].max, 20].min
     {
       samples: samples,
       scores: scores,
       z: z,
-      end_reason: bot.game.game_end_reason,
+      winner: winner,
+      margin: margin.round(1),
+      winner_weight: winner_weight,
+      end_reason: end_reason,
       actions: actions,
       players: bot.config['players'],
       seed: bot.config['seed'],
       game: bot.config['game'],
       non_pass: non_pass,
       degenerate: degenerate,
+      low_quality: low_quality,
       elapsed: (Time.now - started).round(2),
     }
   end
@@ -128,13 +142,17 @@ if $PROGRAM_NAME == __FILE__
   File.open(File.join(out, "#{id}.jsonl"), 'w') do |file|
     file.puts(JSON.generate(type: 'meta', players: data[:players], seed: data[:seed], game: data[:game],
                             end_reason: data[:end_reason].to_s, feature_version: P1846::FEATURE_VERSION,
-                            non_pass: data[:non_pass], degenerate: data[:degenerate], elapsed: data[:elapsed]))
+                            non_pass: data[:non_pass], degenerate: data[:degenerate],
+                            low_quality: data[:low_quality], elapsed: data[:elapsed],
+                            winner: data[:winner], margin: data[:margin], winner_weight: data[:winner_weight]))
     data[:samples].each do |sample|
       file.puts(JSON.generate(type: 'decision', actor: sample[:actor], state: sample[:state].map { |v| v.round(4) },
                               actions: sample[:actions].map { |a| a.map { |v| v.round(4) } },
                               chosen: sample[:chosen], prior: sample[:prior]))
     end
-    file.puts(JSON.generate(type: 'result', scores: data[:scores], z: data[:z]))
+    file.puts(JSON.generate(type: 'result', scores: data[:scores], z: data[:z],
+                            winner: data[:winner], margin: data[:margin],
+                            winner_weight: data[:winner_weight]))
   end
   File.write(File.join(out, "#{id}.game.json"),
              JSON.generate(id: "1846#{data[:seed]}", title: '1846', players: (1..data[:players]).map { |i| { id: i.to_s, name: "AI #{i}" } },
@@ -142,5 +160,6 @@ if $PROGRAM_NAME == __FILE__
                            status: 'finished', result: data[:scores]))
   puts JSON.generate(id: id, decisions: data[:samples].size, end_reason: data[:end_reason].to_s,
                      non_pass: data[:non_pass], degenerate: data[:degenerate], elapsed: data[:elapsed],
+                     winner: data[:winner], margin: data[:margin], winner_weight: data[:winner_weight],
                      scores: data[:scores], z: data[:z])
 end

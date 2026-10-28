@@ -177,7 +177,24 @@ def analyze_game(entry):
     ew_routes = 0
     offboards = set()
     route_revenue = []
+    route_by_train = defaultdict(list)
+    train_buy = Counter()
+    par_prices = []
+    hold = defaultdict(Counter)
     for action in actions:
+        if action.get("type") == "par":
+            try:
+                par_prices.append(float(str(action.get("share_price", "0")).split(",")[0]))
+            except ValueError:
+                pass
+        elif action.get("type") == "buy_train" and action.get("train"):
+            train_buy[str(action["train"]).split("-")[0]] += 1
+        elif action.get("type") in ("buy_shares", "sell_shares"):
+            ent = action.get("entity")
+            pct = action.get("percent", 0) or 0
+            for share in action.get("shares") or []:
+                corp = share.rsplit("_", 1)[0]
+                hold[ent][corp] += pct if action["type"] == "buy_shares" else -pct
         if action.get("type") == "lay_tile" and action.get("hex") == CHICAGO:
             tile = action.get("tile", "").split("-")[0]
             if tile in {"298", "299", "300"}:
@@ -197,6 +214,7 @@ def analyze_game(entry):
                         offboards.add(hex_id)
                 if route.get("revenue") is not None:
                     route_revenue.append(float(route["revenue"]))
+                route_by_train[str(route.get("train", "")).split("-")[0]].append(len(hexes))
 
     lay_by_player = Counter()
     for action in actions:
@@ -244,6 +262,13 @@ def analyze_game(entry):
         "founder": founder,
         "c5_owner_ranks": c5_owner_ranks,
         "lay_by_player": lay_by_player,
+        "route_by_train": route_by_train,
+        "train_buy": train_buy,
+        "par_prices": par_prices,
+        "corps_held": {player: sum(1 for value in holdings.values() if value > 0)
+                       for player, holdings in hold.items()},
+        "margin": entry["meta"].get("margin"),
+        "winner_weight": entry["meta"].get("winner_weight"),
         "non_pass": entry["game"]["non_pass"],
     }
 
@@ -341,9 +366,26 @@ def build_report(games, degenerate, missing_game, total_files, label, out_dir, m
     ew_games = sum(1 for g in analyzed if g["ew_routes"] > 0)
     z_all = sum(1 for g in analyzed if g["z_all3"])
     try:
-        human = json.loads(HUMAN_PRIOR.read_text(encoding="utf-8")).get("rates", {})
+        human_doc = json.loads(HUMAN_PRIOR.read_text(encoding="utf-8"))
+        human = human_doc.get("rates", {})
+        human_route = human_doc.get("route_len", {})
     except (OSError, json.JSONDecodeError):
         human = {}
+        human_route = {}
+    route_stats = defaultdict(list)
+    train_totals = Counter()
+    corps_held_all = []
+    margins = []
+    weights = []
+    for game in analyzed:
+        for train, lengths in game.get("route_by_train", {}).items():
+            route_stats[train].extend(lengths)
+        train_totals.update(game.get("train_buy", {}))
+        corps_held_all.extend(v for v in game.get("corps_held", {}).values() if v > 0)
+        if game.get("margin") is not None:
+            margins.append(float(game["margin"]))
+        if game.get("winner_weight") is not None:
+            weights.append(float(game["winner_weight"]))
     offboard_games = sum(1 for g in analyzed if g["offboards"])
     avg_lays = lay_total / n if n else 0
     avg_routes = sum(g["c5_routes"] for g in analyzed) / n if n else 0
@@ -499,6 +541,35 @@ def build_report(games, degenerate, missing_game, total_files, label, out_dir, m
         lines.append(f"| Z 三城全升级 | {pct(z_all / n)} | {pct(human.get('z_all3', 0))} |")
         lines.append(f"| E/W 奖励 | {pct(ew_games / n)} | {pct(human.get('ew', 0))} |")
         lines.append(f"| C5 线路 | {pct(c5_games / n)} | {pct(human.get('c5', 0))} |")
+    lines.append("")
+    lines.append("### 车辆使用率（每趟线路平均停靠数）")
+    lines.append("")
+    lines.append("| 车 | AI 停靠 | 车辆距离 | 人类停靠 | 差距 |")
+    lines.append("|:--|--:|--:|--:|--:|")
+    distances = {"2": 2, "3/5": 5, "4": 4, "4/6": 6, "5": 5, "6": 6, "7/8": 8}
+    for train in ("2", "4", "3/5", "4/6", "5", "6", "7/8"):
+        values = route_stats.get(train) or []
+        if not values:
+            continue
+        ai_mean = statistics.mean(values)
+        human_mean = human_route.get(train, {}).get("mean")
+        dist = distances.get(train, 0)
+        if human_mean is not None:
+            lines.append(f"| {train} | {ai_mean:.2f} | {dist} | {human_mean:.2f} | {ai_mean - human_mean:+.2f} |")
+        else:
+            lines.append(f"| {train} | {ai_mean:.2f} | {dist} | — | — |")
+    lines.append("")
+    lines.append("### 股权与学习权重")
+    lines.append("")
+    if corps_held_all:
+        lines.append(f"- 有持股的玩家平均持有 **{statistics.mean(corps_held_all):.2f}** 家公司；"
+                     f"持有 ≥2 家 {pct(sum(1 for v in corps_held_all if v >= 2) / len(corps_held_all))}，"
+                     f"≥3 家 {pct(sum(1 for v in corps_held_all if v >= 3) / len(corps_held_all))}。"
+                     "这是交叉持股/分散持股的直接指标。")
+    if margins:
+        margin_text = "$" + format(statistics.mean(margins), ",.0f")
+        lines.append("- 冠军对第二名的平均差距 **" + margin_text + "**；"
+                     f"按每 $500 一档，平均学习权重 **{statistics.mean(weights):.2f}**，最高 {max(weights):.0f}。")
     lines.append("")
     lines.append("## 四、什么更可能赢（描述性，不是因果）")
     lines.append("")

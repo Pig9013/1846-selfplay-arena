@@ -72,34 +72,26 @@ module P1846
       info = candidate[:info]
       hex = game.hex_by_id(info[:hex])
       cost = candidate[:cost] || 0
-      # A tile is not a goal. Start low, charge the real cost, and let city
-      # revenue / off-board links / upgrades earn the score. The old base of 10
-      # made almost every legal tile beat "pass", which is why the bots laid
-      # ~100 tiles per game and still lost ground.
+      # A tile is not a goal. Score the money it can produce now and the
+      # revenue base it builds for the next OR. A long E/W line has many
+      # intermediate tiles that do not touch an off-board yet; those must be
+      # judged by the network they build, not by an immediate off-board flag.
+      old_rev = info[:old_city_revenue].to_i
+      new_rev = (info[:new_city_revenue] || city_value(hex, game)).to_i
+      offboard = info[:offboard_link] ? info[:offboard_value].to_i : 0
+      current = (new_rev - old_rev) + offboard
+      future = (new_rev * 0.35) + (info[:through_edges].to_i * 7.0) +
+               (info[:connected_edges].to_i * 4.0)
       score = 2.0
       score += 26 if info[:upgrade]
-      score += (info[:new_city_revenue] || city_value(hex, game)).to_f * 0.7
-      score += info[:upgrade_gain].to_i * 0.45 if info[:upgrade]
-      score += info[:through_edges].to_i * 8.0
-
-      if info[:offboard_link]
-        # The offboard must be joined by this exact rotation, not merely be
-        # adjacent. The revenue term makes a brown W connection worth more than
-        # a yellow one; the flat term pays for completing the route at all.
-        score += 42.0 + (info[:offboard_value].to_i * 0.6)
-        score += 14.0 if (info[:offboard_groups] & %w[E W]).any?
-        # Joining the missing half of an E/W pair is worth real money, and it
-        # is generic: any E plus any W, not just Chicago.
-        score += 55.0 if info[:ew_completion]
-        score += 14.0 if info[:ew_start]
-        score += info[:ew_approach].to_i * 2.0
-      elsif info[:points_at_offboard]
-        # A tile that points an edge at an offboard but does not connect it is
-        # the classic "one hex short" mistake. Make it visibly unattractive.
-        score -= 30.0
-      end
-
-      score += east_west_potential(hex, game) * 0.25
+      score += current * 0.55
+      score += future
+      # Completing an off-board edge is worth something, but it is no longer
+      # allowed to dominate the whole track decision.
+      score += 10.0 if info[:offboard_link]
+      score -= 8.0 if info[:points_at_offboard] && !info[:offboard_link]
+      score += 4.0 if info[:ew_completion]
+      score += info[:ew_approach].to_i * 1.0
       score -= cost * 0.42
       # A bare stub that neither serves a city nor joins an off-board nor runs
       # through a node is usually track sprawl. Keep it slightly negative so
@@ -156,7 +148,7 @@ module P1846
       score = 30.0
       score += 50 if entity.trains.empty?
       score -= price * 0.06
-      score += info[:distance].to_f * 3
+      score += info[:distance].to_f * 5
       score -= 20 if entity.trains.size >= 2 && price > 300
       score += 12 if candidate[:info][:variant] # 3/5 and 4/6 variants are flexible
       score

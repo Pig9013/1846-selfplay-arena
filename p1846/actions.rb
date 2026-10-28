@@ -7,8 +7,8 @@ require_relative 'board'
 # limits, train variants), so a proposal is legal by construction; the engine
 # still validates and remains the final authority.
 module P1846
-  ROUTE_LIMIT = 32
-  ROUTE_TIMEOUT = 1.2
+  ROUTE_LIMIT = 48
+  ROUTE_TIMEOUT = 1.6
 
   module_function
 

@@ -4,6 +4,36 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/) and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [1.3.0] - 2026-10-28
+
+Revenue-first tile scoring, margin-weighted winner learning, and route/equity diagnostics.
+
+### Changed
+
+- Track scoring no longer gives a large flat bonus for touching an off-board, nor
+  a heavy penalty for an intermediate tile on a long E/W line. A tile is scored
+  by current-turn revenue (city + off-board), next-turn revenue potential
+  (through-edges / connected edges), upgrade value and cost.
+- Off-board link bonus reduced to +10; intermediate off-board-facing tile
+  penalty reduced to −8; E/W completion bonus reduced to +4.
+- Route search budget raised to 48 routes / 1.6 s; train preference now weights
+  distance 5 instead of 3.
+- Training reward: the winner is the primary learning target; every $500 of
+  margin over second place adds one weight unit (cap 20). Losers keep a small
+  0.15 weight.
+- Bankrupt or very short games (<200 non-pass actions) are excluded from
+  training as low-quality operational examples.
+- Reports now include route stops by train vs human baseline, holdings per
+  player (cross-holding), and winner margin/learning weight.
+
+### Validation
+
+- Route stops: 4-train 3.18 vs human 3.84; 5-train 4.53 vs 4.87;
+  6-train 5.18 vs 5.73 in the first 15-game sample.
+- Average winner margin $828 → average winner weight 2.27 (max 7).
+- Cross-holding: average 2.45 corps per invested player; 81.8% hold ≥2,
+  47.7% hold ≥3.
+
 ## [1.2.0] - 2026-10-28
 
 Human-play prior and removal of the hard-coded Chicago rule.

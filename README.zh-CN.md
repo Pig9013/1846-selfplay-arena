@@ -7,9 +7,9 @@
 [![verify](https://github.com/Pig9013/1846-selfplay-arena/actions/workflows/verify.yml/badge.svg)](https://github.com/Pig9013/1846-selfplay-arena/actions/workflows/verify.yml)
 [![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-**版本 1.2.0** · Windows · 离线运行 · 不依赖网站账号和云端模型
+**版本 1.3.0** · Windows · 离线运行 · 不依赖网站账号和云端模型
 
-> **1.2.0 相对 1.0.0 的核心变化**：持续自战与 316 局有效样本、48 维动作特征与有界网络残差、旋转感知的铺轨/外域评分、665 局人类先验替代芝加哥硬编码、每 1000 局自动行动分析。完整对比见 [RELEASE_NOTES.md](RELEASE_NOTES.md)。
+> **1.3.0 相对 1.0.0 的核心变化**：持续自战与数百局有效样本、48 维动作特征与有界网络残差、收益优先的铺轨评分、665 局人类先验替代芝加哥硬编码、冠军按 $500 差额加权的学习、每 1000 局自动行动分析。完整对比见 [RELEASE_NOTES.md](RELEASE_NOTES.md)。
 
 ---
 

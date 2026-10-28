@@ -7,9 +7,9 @@ A local **1846: The Race for the Midwest** self-play and self-learning platform:
 [![verify](https://github.com/Pig9013/1846-selfplay-arena/actions/workflows/verify.yml/badge.svg)](https://github.com/Pig9013/1846-selfplay-arena/actions/workflows/verify.yml)
 [![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-**Version 1.2.0** · Windows · runs offline · no site account or cloud model required
+**Version 1.3.0** · Windows · runs offline · no site account or cloud model required
 
-> **What changed from 1.0.0**: continuous self-play with 316 usable games, 48-wide action features and bounded neural residuals, rotation-aware track/offboard scoring, a 665-game human prior replacing the hard-coded Chicago rule, and per-1000-game analysis. Full comparison: [RELEASE_NOTES.en.md](RELEASE_NOTES.en.md).
+> **What changed from 1.0.0**: continuous self-play, 48-wide action features and bounded neural residuals, revenue-first track scoring, a 665-game human prior replacing the hard-coded Chicago rule, margin-weighted winner learning ($500 per step), and per-1000-game analysis. Full comparison: [RELEASE_NOTES.en.md](RELEASE_NOTES.en.md).
 
 ---
 

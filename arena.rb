@@ -6,7 +6,7 @@ require_relative 'p1846/model'
 require 'net/http'
 
 module Arena1846
-  VERSION = '1.2.0'
+  VERSION = '1.3.0'
   STYLES = %w[balanced growth income random lmstudio neural].freeze
 
   # The upstream Ruby path walker validates individual routes. Search combinations
