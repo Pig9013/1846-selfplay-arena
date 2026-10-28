@@ -111,7 +111,13 @@ module P1846
       end
       # Keep a train-buying reserve: track is worth less than a train.
       reserve = entity.trains.empty? ? next_train_price(game) : train_reserve(game, entity)
-      score -= 40 if entity.cash - cost < reserve
+      if entity.cash - cost < reserve
+        # A company with no train must protect the train purchase. Once it has
+        # a train, track is what turns that train into revenue; a full 40-point
+        # reserve penalty made growth companies pass track and then die with a
+        # train but no network.
+        score -= entity.trains.empty? ? 40.0 : 12.0
+      end
       # Prefer hexes touching our own tokens.
       tokens = entity.tokens.select(&:used).map { |t| t.city&.hex }
       score += 12 if tokens.compact.any? { |h| h.neighbors.values.include?(hex) }
