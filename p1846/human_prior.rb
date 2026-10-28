@@ -64,7 +64,11 @@ module P1846
         when 'place_token'
           value(data.dig('phase_hex_norm', phase), info[:hex]) * 0.7
         when 'par'
-          value(data.dig('par_norm', info[:corp]), info[:par].to_s) * 0.9
+          par = value(data.dig('par_norm', info[:corp]), info[:par].to_s) * 0.9
+          ew = value(data['ew_corp_norm'], info[:corp]) * 0.35
+          par + ew
+        when 'buy_shares'
+          value(data['ew_corp_norm'], info[:corp]) * 0.25
         when 'bid', 'buy_company'
           sym = PRIVATE_SYMS[info[:company]] || info[:company]
           value(data['private_norm'], sym) * 0.8

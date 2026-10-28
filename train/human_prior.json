@@ -7,7 +7,7 @@
       "5": 142,
       "3": 62
     },
-    "generated": "2026-10-28 14:09:14",
+    "generated": "2026-10-28 14:14:03",
     "note": "frequency prior from human games; not a rule"
   },
   "phase_hex_norm": {
@@ -705,6 +705,15 @@
     "z_any": 1.0,
     "ew": 0.988,
     "c5": 0.994
+  },
+  "ew_corp_norm": {
+    "GT": 1.0,
+    "PRR": 0.5264,
+    "ERIE": 0.2838,
+    "IC": 0.8988,
+    "B&O": 0.65,
+    "NYC": 0.939,
+    "C&O": 0.3441
   },
   "first_phase": {
     "d6": {

@@ -54,6 +54,7 @@ def main():
     ew_first = Counter()
     c5_games = set()
     d6_games = set()
+    ew_corp = Counter()
 
     for game_index, game in enumerate(games):
         label = game_index
@@ -95,6 +96,7 @@ def main():
                 route = event.get("route") or ""
                 if "E/W" in bonus or "E/W" in route:
                     has_ew = True
+                    ew_corp[event.get("corp")] += 1
                     if first_ew_phase is None:
                         first_ew_phase = phase
                 if "C5" in route:
@@ -149,6 +151,7 @@ def main():
             "ew": round(len(ew_games) / n, 4),
             "c5": round(len(c5_games) / n, 4),
         },
+        "ew_corp_norm": norm(ew_corp),
         "first_phase": {"d6": dict(d6_first), "ew": dict(ew_first)},
     }
     OUT_JSON.write_text(json.dumps(prior, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -192,6 +195,8 @@ def main():
         f"- E/W 奖励：{len(ew_games)}/{n} 局至少一次（{len(ew_games)/n:.1%}）；第一次出现 II {ew_first.get('II',0)} 局、"
         f"III {ew_first.get('III',0)} 局、IV {ew_first.get('IV',0)} 局。",
         f"- C5（Chicago Connections）：{len(c5_games)}/{n} 局至少一次（{len(c5_games)/n:.1%}）。",
+        f"- E/W 主力公司（按人类 E/W 线路次数）：{top(ew_corp, 7)}。GT、NYC、IC、B&O 是主要执行者；"
+        "PRR/C&O/ERIE 次之。",
         "",
         "结论：D6、Z 城、E/W 在人类局里都是接近必做的动作。AI 不应该把它们写成“必须”，"
         "而应该从人类频率里学“什么时候做、先做哪一个、用谁的钱做”。",
