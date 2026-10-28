@@ -498,31 +498,42 @@ def _kill_training(pid):
 
 def stop_training():
     global TRAIN_PROC
+    # A stop file works even when the run was started outside this server and
+    # its PID file was lost. The orchestrator watches it and exits cleanly.
+    try:
+        (ROOT / "train" / "STOP").write_text("stop", encoding="utf-8")
+    except OSError:
+        pass
     proc = TRAIN_PROC
     pid = None
     if proc is not None and proc.poll() is None:
         pid = proc.pid
     elif TRAIN_PID.is_file():
-        # Only trust the PID file while the orchestrator is still writing
-        # status.json. A stale PID could belong to an unrelated process after
-        # Windows reuses it.
         try:
-            fresh = TRAIN_STATUS.is_file() and time.time() - TRAIN_STATUS.stat().st_mtime < 60
+            fresh = TRAIN_STATUS.is_file() and time.time() - TRAIN_STATUS.stat().st_mtime < 600
             if fresh:
                 pid = int(TRAIN_PID.read_text(encoding="utf-8").strip())
         except (OSError, ValueError):
             pid = None
     TRAIN_PROC = None
-    if pid is None:
-        return {"stopped": False}
-    _kill_training(pid)
-    time.sleep(0.5)
+    if pid is not None:
+        _kill_training(pid)
+    time.sleep(1.0)
+    # The process may be killed before its own cleanup runs. Mark the shared
+    # status and clear stale control files so the UI cannot keep saying running.
+    data = read(TRAIN_STATUS, {}) or {}
+    data["stopped"] = True
+    data["updated"] = time.time()
     try:
-        TRAIN_PID.unlink()
+        save(TRAIN_STATUS, data)
     except OSError:
         pass
-    return {"stopped": True}
-
+    for path in (TRAIN_PID, ROOT / "train" / "STOP"):
+        try:
+            path.unlink()
+        except OSError:
+            pass
+    return {"stopped": True, "pid": pid, "stop_file": True}
 
 class Handler(BaseHTTPRequestHandler):
     server_version = "1846Arena/1.0"
@@ -613,6 +624,8 @@ class Handler(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header("Content-Type", mime + "; charset=utf-8")
             self.send_header("Content-Length", str(len(blob)))
+            # Always serve the current page so a fix never hides behind the cache.
+            self.send_header("Cache-Control", "no-store")
             self.end_headers()
             self.wfile.write(blob)
         except (ValueError, KeyError, FileNotFoundError) as exc:

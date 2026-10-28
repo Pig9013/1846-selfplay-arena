@@ -32,6 +32,10 @@ module P1846
       head << "Connection: close\r\n\r\n"
       client.write(head)
       client.write(payload) unless preflight
+    rescue Errno::EPIPE, Errno::ECONNRESET, Errno::ENOTCONN, IOError
+      # The browser hung up (navigation, aborted fetch, preconnect). Never let
+      # that take the whole game server down: the next request starts fresh.
+      nil
     end
 
     def player_of(entity)
@@ -135,7 +139,7 @@ module P1846
           finished: @finished, human_turn: human_turn?, round: g.round.name,
           phase: g.phase.name, entity: entity&.id, cash: entity&.cash,
           trains: entity.respond_to?(:trains) ? entity.trains.map(&:name) : [],
-          players: g.players.map { |p| { id: p.id, name: p.name, cash: p.cash,
+          players: g.players.map { |p| { id: p.id, name: p.id.to_s == @human_seat ? '你' : p.name, cash: p.cash,
                                          companies: g.corporations.select { |c| c.owner == p }.map(&:id) } },
           result: @finished ? g.result : nil,
           candidates: candidates
@@ -172,7 +176,12 @@ module P1846
       loop do
         client = server.accept
         begin
+          client.timeout = 15
           request_line = client.gets.to_s.strip
+          # Keep-alive preconnects and cancelled requests arrive without a
+          # request line; ignore them instead of answering a ghost client.
+          next if request_line.empty?
+
           method, path, _ = request_line.split(' ')
           headers = {}
           while (line = client.gets) && line != "\r\n"

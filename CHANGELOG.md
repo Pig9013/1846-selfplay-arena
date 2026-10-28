@@ -42,6 +42,16 @@ Revenue-first tile scoring, margin-weighted winner learning, and route/equity di
   first reserves cash for the next train; when the company already has trains
   and is not short, it pays out. This removes a common growth/C&O bankruptcy
   path.
+- Human window: every click answered "提交失败：Failed to fetch". The page is
+  served on the arena port (1846) while the human bridge listens on 1847, so
+  each JSON POST is cross-origin and preflighted. The Ruby bridge answered
+  `OPTIONS /choose` with a 404 and no `Access-Control-Allow-Methods` /
+  `Access-Control-Allow-Headers`, so Chrome blocked the POST and `fetch`
+  rejected with a TypeError. The bridge now answers preflights with 204 plus
+  the CORS headers, and it no longer dies when a client hangs up (EPIPE on a
+  kept-alive/preconnect socket used to kill the whole game server).
+- `/human.html` retries after a dropped connection instead of freezing, keeps
+  the engine-rejection message on screen, and closes the trains cell properly.
 
 ### Performance / UX
 

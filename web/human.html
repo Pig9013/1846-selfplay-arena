@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>1846 · 人类与 AI 作战</title>
+<link rel="icon" href="data:,">
 <style>
   :root{color-scheme:dark;--bg:#101315;--panel:#171c1f;--line:#2c363b;--ink:#e8e2d4;--muted:#98a2a6;--accent:#d8a24a;--bad:#d26a5a}
   *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "Segoe UI",system-ui,sans-serif}
@@ -30,7 +31,8 @@
 <script>
 const HUMAN='http://127.0.0.1:1847';
 const $=id=>document.getElementById(id);
-let busy=false;
+let busy=false,timer=null;
+const later=ms=>{clearTimeout(timer);timer=setTimeout(refresh,ms);};
 async function start(){
   $('status').textContent='启动人类对局…';
   try{
@@ -44,23 +46,27 @@ async function refresh(){
     const r=await fetch(HUMAN+'/state'); const d=await r.json();
     $('status').textContent=d.finished?'对局结束':(d.human_turn?'轮到你行动':'AI 行动中…');
     $('round').textContent=(d.round||'')+' / '+(d.phase||'');
-    $('summary').innerHTML='<div>当前：<b>'+(d.entity||'—')+'</b></div><div>现金：$'+(d.cash??'—')+'</div><div>列车：'+(d.trains||[]).join(', ')||'—'+'</div>';
+    $('summary').innerHTML='<div>当前：<b>'+(d.entity||'—')+'</b></div><div>现金：$'+(d.cash??'—')+'</div><div>列车：'+((d.trains||[]).join(', ')||'—')+'</div>';
     $('players').innerHTML='<table><tr><th>玩家</th><th>现金</th><th>公司</th></tr>'+d.players.map(p=>'<tr><td>'+p.name+'</td><td>$'+p.cash+'</td><td>'+(p.companies||[]).join(', ')+'</td></tr>').join('')+'</table>';
     if(d.finished){ $('candidates').innerHTML='<div class="result">结果：'+JSON.stringify(d.result)+'</div>'; return; }
     const box=$('candidates');
-    if(!d.human_turn){box.innerHTML='<div class="muted">AI 正在行动，刷新查看下一步。</div>';setTimeout(refresh,1200);return;}
+    if(!d.human_turn){box.innerHTML='<div class="muted">AI 正在行动，刷新查看下一步。</div>';later(1200);return;}
     box.innerHTML=d.candidates.map(c=>'<button data-i="'+c.index+'"><b>'+c.type+'</b> · '+c.reason+' <span class="muted">['+c.score+'] '+JSON.stringify(c.info)+'</span></button>').join('');
     box.querySelectorAll('button').forEach(b=>b.onclick=()=>choose(+b.dataset.i));
-  }catch(e){$('status').textContent='连接失败：'+e.message;}
+  }catch(e){$('status').textContent='连接失败：'+e.message;later(2000);}
 }
 async function choose(i){
   if(busy)return;busy=true;document.querySelectorAll('#candidates button').forEach(b=>b.disabled=true);
   try{
     const r=await fetch(HUMAN+'/choose',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({index:i})});
-    const d=await r.json(); if(!d.ok) $('status').textContent='该步被引擎拒绝：'+d.error;
+    const d=await r.json();
+    busy=false;
+    if(!d.ok){$('status').textContent='该步被引擎拒绝：'+d.error+'，换一个候选';later(2000);return;}
     await refresh();
-  }catch(e){$('status').textContent='提交失败：'+e.message;}
-  busy=false;
+  }catch(e){
+    busy=false;$('status').textContent='提交失败：'+e.message;
+    later(1500);
+  }
 }
 $('restart').onclick=async()=>{await fetch('/api/human/stop',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});await start();};
 start();

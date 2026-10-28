@@ -28,6 +28,7 @@ from trainer import list_samples, load_games, make_dataset, save_checkpoint, tra
 
 ROOT = Path(__file__).resolve().parent.parent
 TRAIN = ROOT / "train"
+STOP_FILE = TRAIN / "STOP"
 DATA = TRAIN / "data"
 CKPT = TRAIN / "checkpoints" / "latest.pt"
 STATUS = TRAIN / "status.json"
@@ -343,6 +344,14 @@ def report_loop(stop_event, every=1000):
         stop_event.wait(15)
 
 
+def watch_stop_file():
+    while not STOP.is_set():
+        if STOP_FILE.exists():
+            STOP.set()
+            return
+        time.sleep(0.5)
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--workers", type=int, default=max(1, min(6, (os.cpu_count() or 4) // 2)))
@@ -371,6 +380,11 @@ def main():
     REPORTS.mkdir(parents=True, exist_ok=True)
     ensure_checkpoint()
     (TRAIN / "run.pid").write_text(str(os.getpid()), encoding="utf-8")
+    try:
+        STOP_FILE.unlink()
+    except OSError:
+        pass
+    threading.Thread(target=watch_stop_file, daemon=True).start()
     server = start_net_server()
     server_ref = [server]
     threading.Thread(target=monitor_net_server, args=(server_ref, STOP), daemon=True).start()
@@ -433,6 +447,10 @@ def main():
             report_once(STATE["games"])
         try:
             (TRAIN / "run.pid").unlink()
+        except OSError:
+            pass
+        try:
+            STOP_FILE.unlink()
         except OSError:
             pass
 
