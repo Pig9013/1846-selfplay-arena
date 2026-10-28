@@ -1,0 +1,67 @@
+<!doctype html>
+<!-- 生成文件：编辑 web/human_shell.html + human.css + human.js，然后运行 python build_web.py -->
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>1846 · 对局</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="/human.css">
+</head>
+<body>
+<header id="topbar">
+  <div class="brand"><b>1846</b><span>人类 vs 2 AI</span></div>
+  <div class="roundbox">
+    <div><small>轮次</small><strong id="roundName">—</strong></div>
+    <div><small>时代</small><strong id="phaseName">—</strong></div>
+    <div><small>银行</small><strong id="bankCash">—</strong></div>
+    <div><small>现在</small><strong id="turnWho">—</strong></div>
+  </div>
+  <div class="topactions">
+    <span id="conn" class="conn">连接中</span>
+    <button id="undo" disabled>撤回</button>
+    <button id="restart">重新开始</button>
+    <a href="/">自战实验室</a>
+  </div>
+</header>
+
+<main id="play">
+  <aside class="col players" id="players"></aside>
+
+  <section class="col boardcol">
+    <div class="boardhead"><b id="stepLabel">—</b><span id="stepHint">点亮的格子可以铺轨/设站；点格子查看详情</span><button id="zoom" class="mapbtn">放大版图</button></div>
+    <div id="mapWrap">
+      <svg id="map" role="img" aria-label="1846 中西部铁路版图"></svg>
+      <div id="result" class="result hidden"></div>
+    </div>
+    <div class="hextip" id="hextip">点击六角格查看地块信息</div>
+    <div id="marketWrap">
+      <div class="minihead"><span>股市 · 分红右移 / 留存左移</span><span class="muted">股价</span></div>
+      <div class="market" id="market"></div>
+    </div>
+  </section>
+
+  <aside class="col corpscol">
+    <div id="corps"></div>
+    <div id="privatesBox"></div>
+    <div class="minihead"><span>车场</span><span>价格 × 余量</span></div>
+    <div class="depot" id="depot"></div>
+  </aside>
+</main>
+
+<footer id="dock">
+  <section id="logPanel">
+    <div class="dockhead"><span>对局记录</span><span id="logCount">0 条</span></div>
+    <div id="log"></div>
+  </section>
+  <section id="actionPanel">
+    <div id="prompt"></div>
+    <div id="cats"></div>
+    <div id="opts"></div>
+    <div id="confirmBox" class="hidden"></div>
+  </section>
+</footer>
+<div id="toast"></div>
+<script src="/human.js"></script>
+</body>
+</html>

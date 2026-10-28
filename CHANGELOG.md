@@ -15,7 +15,8 @@ Revenue-first tile scoring, margin-weighted winner learning, and route/equity di
   by current-turn revenue (city + off-board), next-turn revenue potential
   (through-edges / connected edges), upgrade value and cost.
 - Off-board link bonus reduced to +10; intermediate off-board-facing tile
-  penalty reduced to −8; E/W completion bonus reduced to +4.
+  penalty reduced to −8. E/W completion was first cut to +4, then raised to
+  +30 after the 1003-game diagnostic showed E/W still at 41.9%.
 - Route search budget raised to 48 routes / 1.6 s; train preference now weights
   distance 5 instead of 3.
 - Training reward: the winner is the primary learning target; every $500 of
@@ -60,6 +61,16 @@ Revenue-first tile scoring, margin-weighted winner learning, and route/equity di
 - Reloading `/human.html` no longer wipes the table silently: if the bridge is
   gone the page shows a start screen ("开始新对局") instead of auto-starting a
   new game, and "重新开始" asks for confirmation first.
+- Human table has an undo: "撤回 (N)" rebuilds the game from the recorded
+  actions up to the checkpoint taken before the last human move (AI replies are
+  rolled back with it) and drops that move's behaviour-cloning sample. Several
+  moves can be taken back one at a time.
+- Private company purchases now follow 1846 rule 6.91: the offer list carries
+  every price from $1 to the company's printed value (grouped per company),
+  not just the $1 minimum. Buying from another player requires that player's
+  consent — the AI seats accept at 75% of the printed value or more and say
+  what they want otherwise — and the AI seats never propose buying the human's
+  companies, so nobody can force a sale at $1.
 
 ### Performance / UX
 
@@ -101,9 +112,10 @@ Revenue-first tile scoring, margin-weighted winner learning, and route/equity di
 
 ### Model / data footprint
 
-- Widened the policy/value MLP from hidden 192 to 512 with a zero-initialised
-  Net2Net expansion; the old function is preserved at step 270 and training
-  continues on the widened checkpoint.
+- Built a 512-wide policy/value MLP with a Net2Net expansion and kept the
+  step-270 192-wide function at `checkpoints/step270-192.pt`. A/B did not show
+  512 is better, so the live checkpoint was reverted to 192 (now step 301);
+  512 remains at `checkpoints/512-step275.pt`. 1024 was not attempted.
 - Replay data kept to the newest 700 games (about 0.74 GB); training buffer is
   600 games (~253k decisions). Old archives removed. Low-quality/bankrupt games
   are still filtered by the trainer.
@@ -119,17 +131,19 @@ Revenue-first tile scoring, margin-weighted winner learning, and route/equity di
 - Fixed NeuralClient to default an empty URL path to `/scores`, which made the
   first A/B runs silently heuristic-only.
 - A/B evaluation (same seeds, neural seat vs balanced/growth/income):
-  30 games, 192 wins 4 / top-2 9 / avg 2171; 512 wins 4 / top-2 8 / avg 2134.
-  No evidence 512 is better, so the live checkpoint reverted to 192 (step 270);
-  512 is kept at `checkpoints/512-step275.pt`. 1024 was not attempted.
+  an earlier 30-game run was 4 wins / 9 top-2 / avg 2171 for 192 vs 4 / 8 /
+  2134 for 512. A later saved 20-game paired run was 3 / 5 / 2090 for 192 vs
+  2 / 3 / 1931 for 512. No evidence 512 is better, so the live checkpoint
+  reverted to 192 (now step 301); 512 is kept at
+  `checkpoints/512-step275.pt`. 1024 was not attempted.
 
 ### Validation
 
-- Route stops: 4-train 3.18 vs human 3.84; 5-train 4.53 vs 4.87;
-  6-train 5.18 vs 5.73 in the first 15-game sample.
-- Average winner margin $828 → average winner weight 2.27 (max 7).
-- Cross-holding: average 2.45 corps per invested player; 81.8% hold ≥2,
-  47.7% hold ≥3.
+- 1003-game diagnostic: 4-train 3.14 vs human 3.84; 5-train 4.37 vs 4.87;
+  6-train 5.45 vs 5.73.
+- Average winner margin $1,257 → average winner weight 3.05 (max 16).
+- Cross-holding: average 2.23 corps per invested player; 69.9% hold ≥2,
+  36.9% hold ≥3.
 
 ## [1.2.0] - 2026-10-28
 

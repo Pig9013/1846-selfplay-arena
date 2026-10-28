@@ -153,6 +153,22 @@ module P1846
     end.sort_by { |h| [COLORS.index(h[:color]) || 9, h[:name].to_i] }
   end
 
+  # A tile the player is about to place, drawn the same way as a placed one so
+  # the browser can show a ghost preview on the hex before confirming.
+  def tile_preview(game, tile, rotation)
+    tile.rotate!(rotation)
+    train = display_train(game)
+    {
+      name: tile.name,
+      color: tile.color.to_s,
+      label: tile.label&.to_s,
+      exits: tile.exits,
+      paths: tile.paths.map { |path| [endpoint(path.a), endpoint(path.b)] },
+      cities: tile.cities.map { |city| city_json(city, game, train, tile) },
+      towns: tile.towns.map { |town| { index: town.index, revenue: revenue_of(town, game, train) } },
+    }
+  end
+
   def board(game)
     train = display_train(game)
     {

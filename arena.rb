@@ -391,6 +391,16 @@ module Arena1846
       end
     end
 
+    # Rebuild the game from an accepted action list (used by the human table
+    # when the player takes a move back). The engine replays raw actions on
+    # construction, so the restored state is exactly the recorded one.
+    def restore(actions)
+      @game = fresh(actions)
+      @net_used = false
+      @net_error = nil
+      self
+    end
+
     # Execute one specific candidate; any engine rejection rolls the game back
     # to the accepted action list so the state stays exactly consistent.
     def execute(candidate)
