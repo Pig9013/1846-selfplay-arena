@@ -13,6 +13,7 @@ ROOT = Path(__file__).resolve().parent.parent
 SOURCE = ROOT.parent / "_work" / "1846_full.json"
 OUT_MD = ROOT / "train" / "human_playbook.md"
 OUT_JSON = ROOT / "train" / "human_prior.json"
+CATALOG = json.loads((ROOT / "audit" / "catalog.json").read_text(encoding="utf-8"))["tiles"]
 PHASES = ["I", "II", "III", "IV"]
 Z_HEXES = {"C15", "E17", "H12"}
 PRIVATE_SYMS = {
@@ -55,7 +56,11 @@ def main():
     c5_games = set()
     d6_games = set()
     ew_corp = Counter()
+    ew_train = Counter()
+    ew_examples = defaultdict(list)
     route_len = defaultdict(list)
+    upgrade_city = 0
+    upgrade_plain = 0
 
     for game_index, game in enumerate(games):
         label = game_index
@@ -90,6 +95,12 @@ def main():
                         first_phase = phase
                 if hex_id in Z_HEXES:
                     game_z.add(hex_id)
+                tile_info = CATALOG.get(tile, {})
+                if tile_info.get("color") in ("green", "brown", "gray"):
+                    if tile_info.get("cities"):
+                        upgrade_city += 1
+                    else:
+                        upgrade_plain += 1
             elif kind == "token" and event.get("hex"):
                 token_hex[phase][event["hex"]] += 1
             elif kind == "run":
@@ -101,6 +112,9 @@ def main():
                 if "E/W" in bonus or "E/W" in route:
                     has_ew = True
                     ew_corp[event.get("corp")] += 1
+                    ew_train[(event.get("corp"), event.get("train"))] += 1
+                    if route and route not in ew_examples[(event.get("corp"), event.get("train"))]:
+                        ew_examples[(event.get("corp"), event.get("train"))].append(route)
                     if first_ew_phase is None:
                         first_ew_phase = phase
                 if "C5" in route:
@@ -156,6 +170,11 @@ def main():
             "c5": round(len(c5_games) / n, 4),
         },
         "ew_corp_norm": norm(ew_corp),
+        "ew_train": [{"corp": corp, "train": train, "n": count,
+                      "examples": ew_examples[(corp, train)][:3]}
+                     for (corp, train), count in ew_train.most_common(20)],
+        "upgrade_share": {"city": upgrade_city, "plain": upgrade_plain,
+                          "city_rate": round(upgrade_city / max(1, upgrade_city + upgrade_plain), 4)},
         "route_len": {train: {"n": len(values), "mean": round(statistics.mean(values), 2)}
                       for train, values in route_len.items() if values},
         "first_phase": {"d6": dict(d6_first), "ew": dict(ew_first)},
@@ -201,8 +220,15 @@ def main():
         f"- E/W 奖励：{len(ew_games)}/{n} 局至少一次（{len(ew_games)/n:.1%}）；第一次出现 II {ew_first.get('II',0)} 局、"
         f"III {ew_first.get('III',0)} 局、IV {ew_first.get('IV',0)} 局。",
         f"- C5（Chicago Connections）：{len(c5_games)}/{n} 局至少一次（{len(c5_games)/n:.1%}）。",
+        f"- 升级结构：城市瓦 {upgrade_city} 次（{upgrade_city/max(1,upgrade_city+upgrade_plain):.1%}），"
+        f"普通路线 {upgrade_plain} 次（{upgrade_plain/max(1,upgrade_city+upgrade_plain):.1%}）。"
+        "普通路线升级主要是为了接通两块高价值区域或 E/W，不是见线就升。",
         f"- E/W 主力公司（按人类 E/W 线路次数）：{top(ew_corp, 7)}。GT、NYC、IC、B&O 是主要执行者；"
         "PRR/C&O/ERIE 次之。",
+        "- 典型贯通路线（人类日志里的实际例子，不是规则）：GT 4 车可走 C17-C15-D6-C5"
+        "（W-Chicago-Detroit-E）；NYC 需要 5 车走 C17-C15-D14-D6-C5（E-Erie-Cleveland-Chicago-W）；"
+        "IC 4 车可走 C17-C15-D6-C5 或经 Centralia；C&O 4/6 车走 I17-I15-H12-D6-C5。"
+        "这些路线的共同点是：两端是外域，中间是 Z/芝加哥等城市，不是靠升普通路线堆出来的。",
         "",
         "结论：D6、Z 城、E/W 在人类局里都是接近必做的动作。AI 不应该把它们写成“必须”，"
         "而应该从人类频率里学“什么时候做、先做哪一个、用谁的钱做”。",

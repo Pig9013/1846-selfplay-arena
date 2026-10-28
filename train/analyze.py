@@ -30,6 +30,11 @@ LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 CHANGELOG = Path(__file__).resolve().parent / "logic_changelog.json"
 HUMAN_PRIOR = Path(__file__).resolve().parent / "human_prior.json"
 Z_HEXES = {"C15", "E17", "H12"}
+try:
+    TILE_CATALOG = json.loads((Path(__file__).resolve().parent.parent / "audit" / "catalog.json")
+                              .read_text(encoding="utf-8"))["tiles"]
+except (OSError, json.JSONDecodeError):
+    TILE_CATALOG = {}
 
 
 def read_jsonl(path):
@@ -226,6 +231,17 @@ def analyze_game(entry):
             lay_by_player[owner] += 1
     z_upgrades = {action.get("hex") for action in actions
                   if action.get("type") == "lay_tile" and action.get("hex") in Z_HEXES}
+    city_upgrades = plain_upgrades = 0
+    for action in actions:
+        if action.get("type") != "lay_tile":
+            continue
+        name = str(action.get("tile", "")).split("-")[0]
+        info = TILE_CATALOG.get(name, {})
+        if info.get("color") in ("green", "brown", "gray"):
+            if info.get("cities"):
+                city_upgrades += 1
+            else:
+                plain_upgrades += 1
     chicago_green = any(tile == "298" for _, tile in chicago)
     chicago_brown = any(tile == "299" for _, tile in chicago)
     chicago_gray = any(tile == "300" for _, tile in chicago)
@@ -252,6 +268,8 @@ def analyze_game(entry):
         "chicago_owner": chicago_owner,
         "z_upgrades": z_upgrades,
         "z_all3": len(z_upgrades) == 3,
+        "city_upgrades": city_upgrades,
+        "plain_upgrades": plain_upgrades,
         "c5_routes": c5_routes,
         "d6_c5_routes": d6_c5_routes,
         "ew_routes": ew_routes,
@@ -365,6 +383,9 @@ def build_report(games, degenerate, missing_game, total_files, label, out_dir, m
     c5_games = sum(1 for g in analyzed if g["c5_routes"] > 0)
     ew_games = sum(1 for g in analyzed if g["ew_routes"] > 0)
     z_all = sum(1 for g in analyzed if g["z_all3"])
+    city_up = sum(g["city_upgrades"] for g in analyzed)
+    plain_up = sum(g["plain_upgrades"] for g in analyzed)
+    city_up_rate = city_up / max(1, city_up + plain_up)
     try:
         human_doc = json.loads(HUMAN_PRIOR.read_text(encoding="utf-8"))
         human = human_doc.get("rates", {})
@@ -526,6 +547,9 @@ def build_report(games, degenerate, missing_game, total_files, label, out_dir, m
                  f"{sum(1 for g in analyzed if g['chicago_brown'])} 局到棕，"
                  f"{sum(1 for g in analyzed if g['chicago_gray'])} 局到灰；有芝加哥行动的局 {chicago_any}。")
     lines.append(f"- Z 城（C15/E17/H12）：三城全升级 {z_all}/{n} 局（{pct(z_all / n) if n else '—'}）。")
+    human_upgrade_rate = human_doc.get("upgrade_share", {}).get("city_rate", 0)
+    lines.append(f"- 升级结构：城市瓦 {city_up} 次 / 普通路线 {plain_up} 次（城市占比 "
+                 f"**{pct(city_up_rate)}**；人类 665 局为 {pct(human_upgrade_rate)}）。")
     lines.append(f"- 芝加哥连接：{c5_games} 局至少跑过一次 C5（{pct(c5_games / n) if n else '—'}），"
                  f"平均每局 {avg_routes:.2f} 条 C5 线路；其中 D6–C5 同线 {sum(g['d6_c5_routes'] for g in analyzed)} 条。")
     lines.append(f"- 东西向：{ew_games} 局跑出 E/W 奖励（{pct(ew_games / n) if n else '—'}），平均每局 {avg_ew:.2f} 条。")

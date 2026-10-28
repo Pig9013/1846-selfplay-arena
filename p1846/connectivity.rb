@@ -166,6 +166,7 @@ module P1846
         tile: tile.name,
         color: tile.color.to_s,
         upgrade: hex.tile.color != :white,
+        city_upgrade: hex.tile.color != :white && tile.cities.any?,
         connected_edges: network_edges.size,
         offboard_edges: offboard_edges.size,
         offboard_link: link,

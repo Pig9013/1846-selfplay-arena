@@ -83,13 +83,22 @@ module P1846
       future = (new_rev * 0.35) + (info[:through_edges].to_i * 7.0) +
                (info[:connected_edges].to_i * 4.0)
       score = 2.0
-      score += 26 if info[:upgrade]
+      # City tiles (especially Z/Chicago, but generic here) are the upgrades
+      # worth paying for. Plain-track upgrades get a much smaller nudge; their
+      # job is connecting valuable cities, not being upgraded for its own sake.
+      score += info[:city_upgrade] ? 26.0 : (info[:upgrade] ? 4.0 : 0.0)
       score += current * 0.55
       score += future
       # Completing an off-board edge is worth something, but it is no longer
       # allowed to dominate the whole track decision.
       score += 10.0 if info[:offboard_link]
       score -= 8.0 if info[:points_at_offboard] && !info[:offboard_link]
+      # Upgrading plain track is usually only worth it to join two valuable
+      # regions or an E/W corridor. Without a city/off-board payoff, it is
+      # mostly decorative; charge it accordingly (still not a hard ban).
+      if info[:upgrade] && !info[:city_upgrade] && !info[:offboard_link]
+        score -= 20.0
+      end
       score += 4.0 if info[:ew_completion]
       score += info[:ew_approach].to_i * 1.0
       score -= cost * 0.42
@@ -106,7 +115,7 @@ module P1846
       # Prefer hexes touching our own tokens.
       tokens = entity.tokens.select(&:used).map { |t| t.city&.hex }
       score += 12 if tokens.compact.any? { |h| h.neighbors.values.include?(hex) }
-      score += 6 if hex.tile.cities.any? && info[:upgrade]
+      score += 6 if info[:city_upgrade]
       score
     end
 
