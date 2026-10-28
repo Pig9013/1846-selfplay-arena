@@ -73,6 +73,17 @@ Revenue-first tile scoring, margin-weighted winner learning, and route/equity di
   `status.json` stopped and clears stale control files. This works for runs
   started outside the web server too.
 
+### Model / data footprint
+
+- Widened the policy/value MLP from hidden 192 to 512 with a zero-initialised
+  Net2Net expansion; the old function is preserved at step 270 and training
+  continues on the widened checkpoint.
+- Replay data kept to the newest 700 games (about 0.74 GB); training buffer is
+  600 games (~253k decisions). Old archives removed. Low-quality/bankrupt games
+  are still filtered by the trainer.
+- Route search results are cached per game action/company to avoid repeated
+  AutoRouter work in UI/evaluation calls.
+
 ### Validation
 
 - Route stops: 4-train 3.18 vs human 3.84; 5-train 4.53 vs 4.87;
