@@ -43,6 +43,17 @@ Revenue-first tile scoring, margin-weighted winner learning, and route/equity di
   and is not short, it pays out. This removes a common growth/C&O bankruptcy
   path.
 
+### Performance / UX
+
+- Training auto-selects CUDA when available; the current machine uses
+  `torch 2.13.0+cu130` on an RTX 5070 Ti. Ruby rules still run on CPU (the
+  engine is not a GPU workload); the neural training/inference move to CUDA.
+- `/human.html`: 1 human + 2 random AI, action-by-action. The human can only
+  act on their turn; every choice is logged for behaviour cloning.
+- Two focus personas, `chicago_connector` and `zone_connector`, enter the
+  mixed strategy pool at half the normal draw weight; they are not global rules.
+- The most recent 100 games' winners get a 2x sample-weight boost.
+
 ### Validation
 
 - Route stops: 4-train 3.18 vs human 3.84; 5-train 4.53 vs 4.87;

@@ -34,7 +34,8 @@
 | 机器人 | 规则感知候选生成（连接检查、瓦片库存、颜色/保留轨道、股份与列车限制），启发式打分，可叠加神经网络策略 |
 | 自学习 | `p1846/selfplay.rb` 采样 → `train/nnserver.py` 推理 → `train/trainer.py` 训练 → `train/orchestrate.py` 持续编排 → `train/analyze.py` 每 1000 局分析 |
 | 人类先验 | `train/human_playbook.py` 从 665 局人类对局生成 `human_playbook.md` 与 `human_prior.json`；`p1846/human_prior.rb` 作为软先验，不是规则 |
-| 人类席位 | `p1846/human_seat.rb` 在当前规则引擎里让人类坐一席，逐决策选候选，写出 `train/human_data/*.jsonl` 供行为克隆 |
+| 人类席位 | `p1846/human_seat.rb` / `p1846/human_http.rb` 让人类坐一席；网页 `/human.html` 是 1 人 + 2 AI 的逐步对局，写出 `train/human_data/*.jsonl` 供行为克隆 |
+| GPU | `train/trainer.py` / `nnserver.py` 自动使用 CUDA；Ruby 规则引擎仍在 CPU |
 | 观战 | 本地网页：版图、回放、玩家资产、公司表、决策理由、训练面板 |
 | 审计 | `audit/log_audit.py` 用真实日志重算线路收入；`verify_game.rb` 逐行动重放并核对现金守恒 |
 | 资源占用 | 子进程低于正常优先级；默认 6 个自战进程；训练只用 2 个 torch 线程 |

@@ -31,6 +31,8 @@ def main():
     parser.add_argument("--base", default=str(ROOT / "checkpoints" / "latest.pt"))
     parser.add_argument("--out", default=str(ROOT / "checkpoints" / "human_bc.pt"))
     parser.add_argument("--steps", type=int, default=300)
+    parser.add_argument("--winners-only", action="store_true",
+                        help="only train games where the human seat won")
     parser.add_argument("--batch", type=int, default=64)
     parser.add_argument("--lr", type=float, default=3e-4)
     args = parser.parse_args()
@@ -39,6 +41,11 @@ def main():
     if not files:
         raise SystemExit(f"no human JSONL under {args.data}")
     games = load_games(files)
+    if args.winners_only:
+        games = [g for g in games
+                 if str(g.get("winner")) == str(g.get("meta", {}).get("human_seat"))]
+        if not games:
+            raise SystemExit("no human-won games in this data set")
     data = make_dataset(games, max_actions=12)
     if len(data) < 16:
         raise SystemExit(f"only {len(data)} human decisions; need more")

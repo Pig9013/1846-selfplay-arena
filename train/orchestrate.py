@@ -257,14 +257,19 @@ def load_model():
 def training_loop(stop_event, every=6, steps=120, buffer=1200, min_new=2, keep=4000):
     model, step = load_model()
     last_count = 0
+    last_mtime = 0.0
     while not stop_event.is_set():
         files = list_samples(DATA)
-        # Only train when there is new data.  When pruning removes old files the
-        # count can fall; treat that as a reset rather than a negative delta.
+        # Only train when there is new data.  A fixed seed range can overwrite a
+        # file without changing the file count, so mtime is part of the signal.
         if len(files) < last_count:
             last_count = 0
-        if len(files) - last_count >= min_new:
+            last_mtime = 0.0
+        latest = max((os.path.getmtime(path) for path in files), default=0.0)
+        new_count = len(files) - last_count
+        if new_count >= min_new or latest > last_mtime + 0.5:
             last_count = len(files)
+            last_mtime = latest
             games = load_games(files[-buffer:])
             data = make_dataset(games)
             if len(data) >= 64:
@@ -344,7 +349,7 @@ def main():
     parser.add_argument("--games", type=int, default=0, help="0 = unlimited")
     parser.add_argument("--minutes", type=float, default=0, help="0 = unlimited")
     parser.add_argument("--players", type=int, default=4)
-    parser.add_argument("--seed", type=int, default=1000)
+    parser.add_argument("--seed", type=int, default=None)
     parser.add_argument("--temperature", type=float, default=1.5)
     parser.add_argument("--net-weight", type=float, default=15)
     parser.add_argument("--human-prior-weight", type=float, default=10)
@@ -357,6 +362,9 @@ def main():
     parser.add_argument("--buffer", type=int, default=1200)
     parser.add_argument("--continuous", action="store_true", help="run until stopped")
     args = parser.parse_args()
+    # Do not silently reuse an old seed range: that overwrote existing games and
+    # made the training loop think no new samples had arrived.
+    seed_base = args.seed if args.seed is not None else int(time.time()) % 1_000_000
 
     DATA.mkdir(parents=True, exist_ok=True)
     TRAIN.mkdir(parents=True, exist_ok=True)
@@ -377,7 +385,7 @@ def main():
         STATE["game_limit"] = args.games if args.games > 0 else 10**12
 
     threads = [threading.Thread(target=worker,
-                                args=(i, args.seed, args.players, args.temperature,
+                                args=(i, seed_base, args.players, args.temperature,
                                       args.net_weight, args.human_prior_weight,
                                       args.strategy_mode, STOP), daemon=True)
                for i in range(args.workers)]

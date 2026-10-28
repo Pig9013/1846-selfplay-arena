@@ -58,7 +58,10 @@ module SelfPlay
       player = entity.player? ? entity : entity.player
       state = P1846.state_features(bot.game, entity)
       acts = list.take(12).map { |c| P1846.action_features(bot.game, c, entity) }
-      idx = softmax_sample(list, config.fetch('temperature', 1.5).to_f, rng)
+      # Focus personas are deliberately less random: half the exploration rate
+      # of the ordinary seats, matching their half draw weight in the pool.
+      epsilon = %w[chicago_connector zone_connector].include?(bot.style(entity)) ? 0.025 : 0.05
+      idx = softmax_sample(list, config.fetch('temperature', 1.5).to_f, rng, epsilon: epsilon)
       choice = list[idx]
       kind = (choice[:type] || choice[:action]['type']).to_s
       if kind == 'pass'

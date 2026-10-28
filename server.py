@@ -452,7 +452,7 @@ def start_training(payload):
     minutes = float(payload.get("minutes", 0))
     minutes = 0.0 if minutes <= 0 else min(minutes, 10080.0)
     human_prior_weight = max(0.0, min(float(payload.get("human_prior_weight", 10)), 50.0))
-    seed = int(payload.get("seed", 2000))
+    seed = int(payload.get("seed") or (int(time.time()) % 1_000_000))
     flags = subprocess.CREATE_NO_WINDOW | 0x00004000  # below normal priority
     command = [sys.executable, "-u", str(TRAIN_SCRIPT), "--workers", str(workers),
                "--minutes", str(minutes), "--seed", str(seed), "--train-every", "4",
