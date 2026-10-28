@@ -64,6 +64,15 @@ Revenue-first tile scoring, margin-weighted winner learning, and route/equity di
   mixed strategy pool at half the normal draw weight; they are not global rules.
 - The most recent 100 games' winners get a 2x sample-weight boost.
 
+### Environment
+
+- Python and the CUDA PyTorch stack now live on D: `D:\AI\Python312`; the old
+  C: path is a directory junction to D. pip cache is `D:\AI\pip-cache`.
+  Windows/NVIDIA driver components remain on C: because they are system-level.
+- The training stop path writes `train/STOP`, kills the orchestrator PID, marks
+  `status.json` stopped and clears stale control files. This works for runs
+  started outside the web server too.
+
 ### Validation
 
 - Route stops: 4-train 3.18 vs human 3.84; 5-train 4.53 vs 4.87;
