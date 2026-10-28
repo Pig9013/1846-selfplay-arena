@@ -9,6 +9,13 @@ require_relative 'board'
 module P1846
   ROUTE_LIMIT = 48
   ROUTE_TIMEOUT = 1.6
+  ROUTE_STATS = { calls: 0, ms: 0.0, timeouts: 0 }
+
+  def self.reset_route_stats
+    ROUTE_STATS[:calls] = 0
+    ROUTE_STATS[:ms] = 0.0
+    ROUTE_STATS[:timeouts] = 0
+  end
 
   module_function
 
@@ -78,9 +85,24 @@ module P1846
   # Upstream path walker (same one the website uses), then an exhaustive
   # non-overlapping combination search over the returned per-train routes.
   def best_routes(game, entity)
+    started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+    trains = game.route_trains(entity)
+    # Early 2-train ORs have tiny route graphs; spending 48 paths/1.6 s there
+    # is pure CPU waste. Late trains can use the full budget.
+    count = trains.size
+    limit, timeout = if count <= 2
+                       [24, 0.8]
+                     elsif count <= 4
+                       [40, 1.2]
+                     else
+                       [ROUTE_LIMIT, ROUTE_TIMEOUT]
+                     end
     router = Engine::AutoRouter.new(game)
-    groups, timed_out = router.path(game.route_trains(entity).sort_by(&:id), entity,
-                                    path_timeout: ROUTE_TIMEOUT, route_limit: ROUTE_LIMIT)
+    groups, timed_out = router.path(trains.sort_by(&:id), entity,
+                                    path_timeout: timeout, route_limit: limit)
+    ROUTE_STATS[:calls] += 1
+    ROUTE_STATS[:ms] += (Process.clock_gettime(Process::CLOCK_MONOTONIC) - started) * 1000.0
+    ROUTE_STATS[:timeouts] += 1 if timed_out
     best = []
     value = 0
     search = lambda do |index, chosen|

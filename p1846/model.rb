@@ -154,6 +154,7 @@ module P1846
   class NeuralClient
     def initialize(url)
       @uri = URI(url)
+      @uri.path = '/scores' if @uri.path.nil? || @uri.path.empty?
       @http = Net::HTTP.new(@uri.host, @uri.port)
       @http.open_timeout = 1
       @http.read_timeout = 10

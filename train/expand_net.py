@@ -14,7 +14,7 @@ from net import PolicyValueNet
 ROOT = Path(__file__).resolve().parent
 
 
-def expand(old_state, new_hidden):
+def expand(old_state, new_hidden, noise=0.0):
     old_hidden = int(old_state["state.0.weight"].shape[0])
     old = PolicyValueNet(hidden=old_hidden)
     old.load_state_dict(old_state)
@@ -38,6 +38,18 @@ def expand(old_state, new_hidden):
             dst[key][:, new_hidden:] = value[:, old_hidden:]
         else:
             dst[key] = value.clone()
+    if noise > 0:
+        generator = torch.Generator().manual_seed(12345)
+        def fill(tensor, rows, cols):
+            tensor[rows, cols] = torch.randn(tensor[rows, cols].shape, generator=generator) * noise
+        fill(dst["state.0.weight"], slice(old_hidden, new_hidden), slice(None))
+        dst["state.0.bias"][old_hidden:new_hidden] = torch.randn(
+            new_hidden - old_hidden, generator=generator) * noise
+        fill(dst["state.2.weight"], slice(old_hidden, new_hidden), slice(None))
+        fill(dst["state.2.weight"], slice(0, old_hidden), slice(old_hidden, new_hidden))
+        dst["state.2.bias"][old_hidden:new_hidden] = torch.randn(
+            new_hidden - old_hidden, generator=generator) * noise
+        fill(dst["head.0.weight"], slice(None), slice(old_hidden, new_hidden))
     new.load_state_dict(dst)
     return old, new
 
@@ -46,11 +58,13 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--checkpoint", default=str(ROOT / "checkpoints" / "latest.pt"))
     parser.add_argument("--hidden", type=int, default=512)
+    parser.add_argument("--noise", type=float, default=0.0,
+                        help="random init for newly added capacity; 0 keeps it dead")
     parser.add_argument("--out", default=str(ROOT / "checkpoints" / "latest.pt"))
     args = parser.parse_args()
     path = Path(args.checkpoint)
     state = torch.load(path, map_location="cpu", weights_only=True)
-    old, new = expand(state["model"], args.hidden)
+    old, new = expand(state["model"], args.hidden, args.noise)
     old.eval()
     new.eval()
     with torch.no_grad():

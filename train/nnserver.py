@@ -138,7 +138,10 @@ class Handler(BaseHTTPRequestHandler):
         self._json(200, {"scores": item["result"]})
 
 
-def main(port=18346):
+def main(port=18346, checkpoint=None):
+    global CKPT
+    if checkpoint:
+        CKPT = Path(checkpoint)
     maybe_reload()
     threading.Thread(target=batch_worker, daemon=True).start()
     srv = ThreadingHTTPServer(("127.0.0.1", port), Handler)
@@ -147,5 +150,9 @@ def main(port=18346):
 
 
 if __name__ == "__main__":
-    import sys
-    main(int(sys.argv[1]) if len(sys.argv) > 1 else 18346)
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("port", nargs="?", type=int, default=18346)
+    parser.add_argument("--checkpoint", default=None)
+    args = parser.parse_args()
+    main(args.port, args.checkpoint)

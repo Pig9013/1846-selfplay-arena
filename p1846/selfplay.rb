@@ -40,6 +40,8 @@ module SelfPlay
     rng = Random.new(Integer(config.fetch('seed', 0)) * 7919 + Integer(config.fetch('game', 0)))
     bot = Arena1846::Bot.new(config)
     samples = []
+    candidate_ms = 0.0
+    P1846.reset_route_stats
     guard = 0
     progress = 0
     consecutive_pass = 0
@@ -52,7 +54,9 @@ module SelfPlay
       entity = step.current_entity
       raise "no entity at #{step.class}" unless entity
 
+      candidate_started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
       list = bot.candidates
+      candidate_ms += (Process.clock_gettime(Process::CLOCK_MONOTONIC) - candidate_started) * 1000.0
       raise "no candidates at #{step.class}" if list.empty?
 
       player = entity.player? ? entity : entity.player
@@ -114,6 +118,7 @@ module SelfPlay
       winner: winner,
       margin: margin.round(1),
       winner_weight: winner_weight,
+      candidate_ms: candidate_ms,
       end_reason: end_reason,
       actions: actions,
       players: bot.config['players'],
@@ -147,7 +152,11 @@ if $PROGRAM_NAME == __FILE__
                             end_reason: data[:end_reason].to_s, feature_version: P1846::FEATURE_VERSION,
                             non_pass: data[:non_pass], degenerate: data[:degenerate],
                             low_quality: data[:low_quality], elapsed: data[:elapsed],
-                            winner: data[:winner], margin: data[:margin], winner_weight: data[:winner_weight]))
+                            winner: data[:winner], margin: data[:margin], winner_weight: data[:winner_weight],
+                            route_calls: P1846::ROUTE_STATS[:calls],
+                            route_ms: P1846::ROUTE_STATS[:ms].round(1),
+                            route_timeouts: P1846::ROUTE_STATS[:timeouts],
+                            candidate_ms: data[:candidate_ms].to_f.round(1)))
     data[:samples].each do |sample|
       file.puts(JSON.generate(type: 'decision', actor: sample[:actor], state: sample[:state].map { |v| v.round(4) },
                               actions: sample[:actions].map { |a| a.map { |v| v.round(4) } },

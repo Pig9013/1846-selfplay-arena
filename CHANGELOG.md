@@ -52,9 +52,35 @@ Revenue-first tile scoring, margin-weighted winner learning, and route/equity di
   kept-alive/preconnect socket used to kill the whole game server).
 - `/human.html` retries after a dropped connection instead of freezing, keeps
   the engine-rejection message on screen, and closes the trains cell properly.
+- Human game no longer strands at the end of a track step (or on a seat with no
+  legal action, e.g. a player with $0 and nothing to sell). The bridge now
+  settles a finished round into the next one and skips a seat the engine cannot
+  move, so the table never waits forever on "AI 行动中". Laying the first tile
+  used to be the classic trigger.
+- Reloading `/human.html` no longer wipes the table silently: if the bridge is
+  gone the page shows a start screen ("开始新对局") instead of auto-starting a
+  new game, and "重新开始" asks for confirmation first.
 
 ### Performance / UX
 
+- Human window rebuilt as an 18xx.games-style table: hex map with placed tiles,
+  cities, tokens and off-board values; player cards (cash, value, shares,
+  privates); corporation cards (president, treasury, share price, trains,
+  stations, ownership bar); a one-row 1846 stock market with company chips; a
+  train depot; and a two-step action dock (action type → grouped options →
+  confirm).
+- Legal hexes light up while laying track or placing a token, and selecting a
+  tile draws a ghost of that exact tile (track, cities, revenue) on the hex
+  before confirmation.
+- The bridge now ships the full board, market, depot, share distribution and a
+  readable candidate list (Chinese labels, de-duplicated share certificates,
+  grouped tile rotations) through `/state`; the payload is cached per action id
+  so polling costs nothing while you think.
+- Every accepted action is logged with a Chinese line plus the engine's own log
+  lines (private purchases, assignments, token placements, dividends, price
+  moves). A completed game is written to `runs/human/对局日志.txt` and
+  `runs/human/game.json`, including the private-company details the 18xx.games
+  site log omits.
 - Training auto-selects CUDA when available; the current machine uses
   `torch 2.13.0+cu130` on an RTX 5070 Ti. Ruby rules still run on CPU (the
   engine is not a GPU workload); the neural training/inference move to CUDA.
