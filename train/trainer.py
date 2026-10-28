@@ -142,7 +142,7 @@ def pad_batch(batch, max_actions=12):
             torch.tensor(sample, dtype=torch.float32))
 
 
-def train_once(model, data, steps=120, batch_size=128, lr=4e-4, temperature=18.0, seed=0):
+def train_once(model, data, steps=120, batch_size=512, lr=4e-4, temperature=18.0, seed=0):
     if len(data) < 64:
         return None
     rng = random.Random(seed)

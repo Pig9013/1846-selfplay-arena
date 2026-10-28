@@ -13,6 +13,27 @@ module P1846
   module HumanHTTP
     module_function
 
+    # The arena page lives on another port, so replies must be CORS-legal and
+    # OPTIONS preflights for JSON POSTs must succeed.
+    CORS_HEADERS = "Access-Control-Allow-Origin: *\r\n" \
+                   "Access-Control-Allow-Methods: GET, POST, OPTIONS\r\n" \
+                   "Access-Control-Allow-Headers: Content-Type\r\n" \
+                   "Access-Control-Max-Age: 600\r\n"
+    REASONS = { 200 => 'OK', 204 => 'No Content', 404 => 'Not Found', 500 => 'Internal Server Error' }.freeze
+
+    def write_response(client, status, payload)
+      preflight = status == 204
+      head = +"HTTP/1.1 #{status} #{REASONS.fetch(status, 'OK')}\r\n"
+      head << CORS_HEADERS
+      unless preflight
+        head << "Content-Type: application/json; charset=utf-8\r\n"
+        head << "Content-Length: #{payload.bytesize}\r\n"
+      end
+      head << "Connection: close\r\n\r\n"
+      client.write(head)
+      client.write(payload) unless preflight
+    end
+
     def player_of(entity)
       return entity if entity&.player?
 
@@ -159,6 +180,13 @@ module P1846
             headers[key.downcase] = value.to_s.strip if key
           end
           body = headers['content-length'] ? client.read(headers['content-length'].to_i) : ''
+          # The page is served from the arena port, so every call here is a
+          # cross-origin request. JSON POSTs are preflighted: answer OPTIONS or
+          # the browser blocks /choose and the page only sees "Failed to fetch".
+          if method == 'OPTIONS'
+            write_response(client, 204, '')
+            next
+          end
           status, payload = if method == 'GET' && path == '/health'
                               [200, { ok: true, human_turn: session.human_turn? }.to_json]
                             elsif method == 'GET' && path == '/state'
@@ -169,11 +197,10 @@ module P1846
                             else
                               [404, { error: 'not found' }.to_json]
                             end
-          client.write "HTTP/1.1 #{status} OK\r\nContent-Type: application/json; charset=utf-8\r\n" \
-                       "Access-Control-Allow-Origin: *\r\nContent-Length: #{payload.bytesize}\r\nConnection: close\r\n\r\n#{payload}"
+          write_response(client, status, payload)
         rescue StandardError => error
           payload = { ok: false, error: error.message }.to_json
-          client.write "HTTP/1.1 500 Error\r\nContent-Type: application/json\r\nContent-Length: #{payload.bytesize}\r\nConnection: close\r\n\r\n#{payload}"
+          write_response(client, 500, payload)
         ensure
           client.close
         end
