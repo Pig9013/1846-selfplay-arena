@@ -49,7 +49,7 @@ module P1846
       (table[key] || 0.0).to_f
     end
 
-    def bonus(game, _entity, candidate)
+    def bonus(game, entity, candidate)
       return 0.0 if @weight <= 0.0
 
       info = candidate[:info] || {}
@@ -60,6 +60,9 @@ module P1846
         when 'lay_tile'
           h = value(data.dig('phase_hex_norm', phase), info[:hex])
           t = value(data.dig('phase_tile_norm', phase), info[:tile])
+          # Human tile frequency should not make decorative plain-track
+          # upgrades look attractive; city upgrades keep their full prior.
+          t *= 0.25 if info[:upgrade] && !info[:city_upgrade]
           (h + (0.7 * t)) * (phase == 'I' ? 1.0 : 0.75)
         when 'place_token'
           value(data.dig('phase_hex_norm', phase), info[:hex]) * 0.7
@@ -73,7 +76,15 @@ module P1846
           sym = PRIVATE_SYMS[info[:company]] || info[:company]
           value(data['private_norm'], sym) * 0.8
         when 'buy_train'
-          value(data.dig('train_norm', phase), info[:train]) * 0.6
+          base = value(data.dig('train_norm', phase), info[:train]) * 0.6
+          # E/W workhorse companies (GT/NYC/IC/B&O) buy the longer trains that
+          # can actually complete the corridor; this is a human-frequency
+          # nudge, not a rule.
+          if entity.respond_to?(:corporation?) && entity.corporation? &&
+             %w[3/5 4 4/6 5 6 7/8].include?(info[:train].to_s)
+            base += value(data['ew_corp_norm'], entity.id) * 0.3
+          end
+          base
         when 'dividend'
           kind = info[:kind].to_s == 'payout' ? 'div' : info[:kind].to_s
           value(data.dig('dividend_norm', phase), kind) * 0.5
