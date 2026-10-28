@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 
 STATE_SIZE = 128
-ACTION_SIZE = 40
+ACTION_SIZE = 48
 
 
 class PolicyValueNet(nn.Module):

@@ -1,14 +1,23 @@
 # frozen_string_literal: true
 
 require_relative 'actions'
+require_relative 'connectivity'
 
 # Rule-aware heuristic policy. It only ranks candidates that the engine has
 # already accepted as legal; the learning pipeline replaces these priors with a
 # trained policy net as checkpoints improve.
+#
+# The weights below encode two things a pure "city revenue / cost" heuristic
+# misses in 1846:
+#   1. A tile is only worth anything if its rotation actually joins the
+#      company's network to the edge that faces an offboard.
+#   2. Chicago (D6) is a low-revenue yellow city that becomes the western
+#      gateway once upgraded; C5 (Chicago Connections) is the W offboard that
+#      makes the east-west run. Ignoring it is a losing habit.
 module P1846
   module Policy
     PRIORITY_COMPANIES = {
-      'MS' => 40, 'BIG4' => 34, 'C&WI' => 32, 'MC' => 30, 'O&I' => 30,
+      'MS' => 44, 'BIG4' => 34, 'C&WI' => 38, 'MC' => 30, 'O&I' => 30,
       'LSL' => 26, 'MAIL' => 24, 'TBC' => 22, 'SC' => 20, 'MPC' => 16, 'LM' => 14, 'BT' => 12,
     }.freeze
 
@@ -19,6 +28,25 @@ module P1846
       return 0 unless train
 
       train.variants.map { |_, v| v[:price] }.min
+    end
+
+    # In 1846 a 2-train is obsolete once the 5-train appears and rusts when the
+    # 6-train appears. A company that spends its treasury on track just before
+    # that point can be forced into an emergency issue and, if the president
+    # cannot cover it, bankruptcy. Reserve the next train price instead of
+    # pretending 100 is always enough.
+    def train_reserve(game, entity)
+      return 100 if entity.trains.empty?
+
+      names = entity.trains.map(&:name)
+      case game.phase.name
+      when 'III'
+        names.include?('2') ? next_train_price(game) : 100
+      when 'IV'
+        (names.include?('2') || names.include?('4')) ? next_train_price(game) : 100
+      else
+        100
+      end
     end
 
     def city_value(hex, game)
@@ -40,17 +68,68 @@ module P1846
       score
     end
 
+    # The Chicago premium is deliberately explicit. Yellow Chicago is four
+    # $10 stubs; green Chicago is four $40 cities that all meet the C5 edge,
+    # i.e. the door to the W offboard and the east-west bonus.
+    def chicago_lay_bonus(info)
+      return 0 unless info[:chicago] || info[:chicago_gateway]
+
+      if info[:chicago]
+        bonus = 30.0
+        if info[:chicago_upgrade]
+          bonus += case info[:color].to_s
+                   when 'green' then 55.0
+                   when 'brown' then 90.0
+                   when 'gray' then 125.0
+                   else 20.0
+                   end
+        end
+        bonus += 40.0 if info[:offboard_link]
+        bonus
+      else
+        distance = info[:distance_to_chicago].to_i
+        [16.0 - (distance * 4.0), 4.0].max
+      end
+    end
+
     def score_lay_tile(game, entity, candidate)
       info = candidate[:info]
       hex = game.hex_by_id(info[:hex])
       cost = candidate[:cost] || 0
-      score = 10.0
+      # A tile is not a goal. Start low, charge the real cost, and let city
+      # revenue / off-board links / upgrades earn the score. The old base of 10
+      # made almost every legal tile beat "pass", which is why the bots laid
+      # ~100 tiles per game and still lost ground.
+      score = 2.0
       score += 26 if info[:upgrade]
-      score += city_value(hex, game) * 0.7
-      score += east_west_potential(hex, game) * 0.5
-      score -= cost * 0.28
+      score += (info[:new_city_revenue] || city_value(hex, game)).to_f * 0.7
+      score += info[:upgrade_gain].to_i * 0.45 if info[:upgrade]
+      score += info[:through_edges].to_i * 8.0
+      score += chicago_lay_bonus(info)
+
+      if info[:offboard_link]
+        # The offboard must be joined by this exact rotation, not merely be
+        # adjacent. The revenue term makes a brown W connection worth more than
+        # a yellow one; the flat term pays for completing the route at all.
+        score += 42.0 + (info[:offboard_value].to_i * 0.6)
+        score += 14.0 if (info[:offboard_groups] & %w[E W]).any?
+      elsif info[:points_at_offboard]
+        # A tile that points an edge at an offboard but does not connect it is
+        # the classic "one hex short" mistake. Make it visibly unattractive.
+        score -= 30.0
+      end
+
+      score += east_west_potential(hex, game) * 0.25
+      score -= cost * 0.42
+      # A bare stub that neither serves a city nor joins an off-board nor runs
+      # through a node is usually track sprawl. Keep it slightly negative so
+      # "pass and keep the treasury" is a real option.
+      if !info[:upgrade] && info[:new_city_revenue].to_i.zero? && !info[:offboard_link] &&
+         info[:through_edges].to_i < 2
+        score -= 10.0
+      end
       # Keep a train-buying reserve: track is worth less than a train.
-      reserve = entity.trains.empty? ? next_train_price(game) : 100
+      reserve = entity.trains.empty? ? next_train_price(game) : train_reserve(game, entity)
       score -= 40 if entity.cash - cost < reserve
       # Prefer hexes touching our own tokens.
       tokens = entity.tokens.select(&:used).map { |t| t.city&.hex }
@@ -66,9 +145,18 @@ module P1846
       score = 20.0 + city.route_revenue(game.phase, P1846.display_train(game)) * 0.8
       opponents = city.tokens.compact.reject { |t| t.corporation == entity }.map(&:corporation)
       score += 16 * opponents.size # blocking is valuable
-      score += east_west_potential(hex, game) * 0.6
+      score += east_west_potential(hex, game) * 0.3
       score -= (candidate[:cost] || 0) * 0.22
-      score += 8 if info[:reserved] || info[:teleport]
+      # Reserved / teleport slots are the only way to enter Chicago without a
+      # connected route. C&WI's free D6 token is the single most important
+      # special token in 1846; PRR/B&O/ERIE/IC reservations are also real assets.
+      if hex.id == P1846::Connectivity::CHICAGO
+        score += 58.0
+        score += 20.0 if info[:reserved] || info[:teleport]
+      elsif info[:chicago_gateway]
+        score += 12.0
+      end
+      score += 22.0 if info[:reserved] || info[:teleport]
       score
     end
 
@@ -108,6 +196,13 @@ module P1846
       score = 40.0
       score += 10 if corp.id == 'IC' # subsidy
       score += 6 if %w[GT C&O].include?(corp.id)
+      # Companies whose home is closer to Chicago have a cheaper path to the
+      # C5 gateway; this is a small tie-breaker, not a substitute for track.
+      if (home_id = corp.coordinates) && (home = game.hex_by_id(home_id)) &&
+         (chicago = game.hex_by_id(P1846::Connectivity::CHICAGO))
+        distance = P1846::Connectivity.hex_distance(home, chicago)
+        score += [12 - distance, 0].max * 0.7
+      end
       score -= (price - 90).abs * 0.2
       score -= 45 if price < 80
       score -= 30 if entity.cash < price * 4
@@ -125,6 +220,7 @@ module P1846
       score = 14.0
       score += 12 if corp.trains.any?
       score += 4 if corp.owner == entity
+      score += 5 if %w[PRR IC].include?(corp.id) # token depth / subsidy
       score -= 25 unless corp.trains.any?
       score += [corp.share_price.price, 150].min / 25.0
       score -= price * 0.05

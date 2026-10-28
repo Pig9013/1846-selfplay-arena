@@ -6,8 +6,8 @@ require_relative 'p1846/model'
 require 'net/http'
 
 module Arena1846
-  VERSION = '1.0.0'
-  STYLES = %w[balanced growth income random lmstudio].freeze
+  VERSION = '1.1.0'
+  STYLES = %w[balanced growth income random lmstudio neural].freeze
 
   # The upstream Ruby path walker validates individual routes. Search combinations
   # here because the site's combination optimizer is JavaScript, not native Ruby.
@@ -22,7 +22,7 @@ module Arena1846
       @seed = Integer(config.fetch('seed', 42))
       @names = (1..Integer(config.fetch('players', 3))).to_h { |i| [i.to_s, "AI #{i}"] }
       @styles = config.fetch('strategies', %w[balanced growth income])
-      @net_weight = config.fetch('net_weight', 40.0).to_f
+      @net_weight = config.fetch('net_weight', 15.0).to_f
       @net = P1846::NeuralClient.new(config['net_url']) if config['net_url']
       @net_error = nil
       @net_used = false
@@ -34,12 +34,21 @@ module Arena1846
     end
 
     def style(entity)
-      player = entity.player? ? entity : entity.player
+      player = if entity.respond_to?(:player?) && entity.player?
+                 entity
+               elsif entity.respond_to?(:player)
+                 entity.player
+               end
       @styles[(@names.keys.index(player&.id) || 0) % @styles.size]
     end
 
     def add(list, action, score, reason, cost: nil, revenue: nil, info: nil)
-      list << { action: action.to_h, score: score, reason: reason, cost: cost, revenue: revenue, info: info || {} }
+      hash = action.to_h
+      # The feature encoder needs the action type. Keeping it on the candidate
+      # (rather than only inside the serialized action) is also what prevents
+      # every action's 14 type bits from being zero in the training samples.
+      list << { action: hash, type: hash['type'], score: score, reason: reason,
+                cost: cost, revenue: revenue, info: info || {} }
     end
 
     def candidates
@@ -49,7 +58,7 @@ module Arena1846
       types = step.actions(e)
       # Assign / SpecialTrack steps act for a company the player controls.
       if types.empty? && e
-        pool = [e] + (e.player? ? e.companies : []) + g.minors.select { |m| m.owner == e }
+        pool = [e] + (e.respond_to?(:companies) ? e.companies : []) + g.minors.select { |m| m.owner == e }
         alt = pool.find { |candidate| !step.actions(candidate).empty? }
         if alt
           e = alt
@@ -116,7 +125,11 @@ module Arena1846
       end
       if types.include?('lay_tile')
         g.hexes.each do |hex|
-          next unless step.tracker_available_hex(e, hex)
+          connected = step.tracker_available_hex(e, hex)
+          next unless connected
+          # The engine returns a hash in some versions and an array of edge
+          # numbers in this snapshot. Normalise to an array of edges.
+          connected = connected.keys if connected.is_a?(Hash)
           step.upgradeable_tiles(e, hex).each do |tile|
             # Guard against degenerate "lay the same tile" candidates (A->A).
             next if tile.name == hex.tile.name || tile.color == hex.tile.color
@@ -125,20 +138,76 @@ module Arena1846
             next if g.track_buying_power(e) < cost
             tile.legal_rotations.each do |rotation|
               tile.rotate!(rotation)
+              # The engine tells us which edges currently reach this company.
+              # Analyse the rotated tile against those edges, so rotations that
+              # do not join the offboard are scored as the dead ends they are.
+              info = P1846::Connectivity.analyze_tile(g, e, hex, tile, connected)
               add(list, Engine::Action::LayTile.new(e, hex: hex, tile: tile, rotation: rotation),
-                  P1846::Policy.score_lay_tile(g, e, { cost: cost, info: { hex: hex.id, tile: tile.name, upgrade: hex.tile.color != :white } }),
-                  '拓展连通线路或升级城市', cost: cost,
-                  info: { hex: hex.id, tile: tile.name, upgrade: hex.tile.color != :white })
+                  P1846::Policy.score_lay_tile(g, e, { cost: cost, info: info }),
+                  info[:offboard_link] ? '接通外域，完成一条可计费线路' : '拓展连通线路或升级城市',
+                  cost: cost, info: info)
             end
           end
         end
       end
-      if types.include?('place_token')
-        g.token_graph_for_entity(e).connected_nodes(e).keys.select(&:city?).each do |city|
-          next unless city.tokenable?(e, free: false)
-          score = e.cash > 250 ? 50 : -10
-          add(list, Engine::Action::PlaceToken.new(e, city: city), score + rng.rand * 5, '在可达城市设置车站',
-              cost: 80, info: { hex: city.hex.id, city: city.index })
+      # A SpecialToken action acts for an owned company (C&WI etc.), while the
+      # token belongs to that company's owning corporation. Normalise the
+      # operator for scoring/graph queries. The engine's round does not surface
+      # company-only steps through current_entity, so the company block below
+      # probes round.actions_for(company) explicitly.
+      operator = if e && e.corporation?
+                   e
+                 elsif e && e.respond_to?(:owner) && e.owner&.corporation?
+                   e.owner
+                 else
+                   e
+                 end
+      if types.include?('place_token') && e && !e.company?
+        graph = g.token_graph_for_entity(operator)
+        graph.connected_nodes(operator).keys.select(&:city?).each do |city|
+          next unless city.tokenable?(operator, free: false)
+          info = { hex: city.hex.id, city: city.index }
+          add(list, Engine::Action::PlaceToken.new(e, city: city),
+              P1846::Policy.score_place_token(g, operator, { cost: 80, info: info }),
+              city.hex.id == P1846::Connectivity::CHICAGO ? '在芝加哥设置车站（西部门户）' : '在可达城市设置车站',
+              cost: 80, info: info)
+        end
+      end
+      # Reserved / teleport company tokens (C&WI Chicago, PRR Ft. Wayne,
+      # B&O Cincinnati, ERIE Erie, IC Centralia). The action entity must be the
+      # company that owns the ability; the engine finds SpecialToken by
+      # actions_for(company) even when the round's active entity is the
+      # corporation. Never add these to TrackAndToken: that path checks
+      # connectivity and rejects C&WI's unconnected Chicago slot.
+      if g.round.operating? && operator.respond_to?(:corporation?) && operator.corporation? &&
+         operator.respond_to?(:companies)
+        graph ||= g.token_graph_for_entity(operator)
+        operator.companies.each do |company|
+          next unless g.round.actions_for(company).include?('place_token')
+
+          g.abilities(company, :token) do |ability|
+            next unless ability.hexes.any?
+
+            ability.hexes.each do |hex_id|
+              hex = g.hex_by_id(hex_id)
+              hex.tile.cities.each_with_index do |city, index|
+                next if ability.city && ability.city != index
+
+                price = ability.price ? ability.price(nil) : 80
+                if graph.reachable_hexes(operator)[hex]
+                  info = { hex: hex.id, city: index, reserved: true, good: true }
+                  add(list, Engine::Action::PlaceToken.new(company, city: city),
+                      P1846::Policy.score_place_token(g, operator, { cost: price, info: info }),
+                      '使用保留站位置入车站', cost: price, info: info)
+                elsif ability.teleport_price
+                  info = { hex: hex.id, city: index, teleport: true, good: true }
+                  add(list, Engine::Action::PlaceToken.new(company, city: city),
+                      P1846::Policy.score_place_token(g, operator, { cost: ability.teleport_price, info: info }),
+                      '使用私营公司能力远程置站', cost: ability.teleport_price, info: info)
+                end
+              end
+            end
+          end
         end
       end
       if types.include?('run_routes')
@@ -222,11 +291,20 @@ module Arena1846
       begin
         state = P1846.state_features(@game, entity)
         actions = list.map { |c| P1846.action_features(@game, c, entity) }
-        scores = @net.scores(state, actions)
+        raw = @net.scores(state, actions).map(&:to_f)
+        # Raw logits live on an arbitrary scale. Adding them directly at weight
+        # 60 lets one confident-looking policy head veto every heuristic and
+        # collapse self-play into "pass forever". Normalise per decision, then
+        # add a bounded number of heuristic points.
+        mean = raw.sum / [raw.size, 1].max
+        variance = raw.sum { |value| (value - mean)**2 } / [raw.size, 1].max
+        std = Math.sqrt(variance).clamp(0.25, 8.0)
         list.each_with_index do |candidate, i|
-          candidate[:net] = scores[i].to_f
+          normalised = ((raw[i] - mean) / std).clamp(-3.0, 3.0)
+          candidate[:net_raw] = raw[i]
+          candidate[:net] = normalised
           candidate[:prior] = candidate[:score]
-          candidate[:score] += scores[i].to_f * @net_weight
+          candidate[:score] += normalised * @net_weight
         end
         list.sort_by! { |c| -c[:score] }
         @net_used = true

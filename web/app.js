@@ -1,6 +1,6 @@
 'use strict';
 const $ = id => document.getElementById(id);
-const styles = {balanced:'均衡经营',growth:'留存发展',income:'优先分红',random:'随机基线',lmstudio:'LM Studio'};
+const styles = {balanced:'均衡经营',growth:'留存发展',income:'优先分红',random:'随机基线',lmstudio:'LM Studio',neural:'神经网络'};
 const statusNames = {running:'自战中',paused:'已暂停',complete:'已完成',error:'遇到问题',stopped:'已停止',interrupted:'上次中断'};
 const actionNames = {bid:'选择私营公司',par:'开办铁路',buy_shares:'买入股票',sell_shares:'出售股份',lay_tile:'铺轨 / 升级',place_token:'设置车站',run_routes:'列车营运',dividend:'分红决策',buy_train:'购买列车',discard_train:'淘汰列车',pass:'结束步骤',buy_company:'收购私营公司',bankrupt:'紧急处置'};
 const roundNames = {'Draft Round':'私营公司分配','Stock Round':'股票轮','Operating Round':'营运轮'};
@@ -23,13 +23,34 @@ function config(){return {players:Number($('players').value),seed:Number($('seed
 $('players').addEventListener('change',seats); seats();
 $('setup').addEventListener('submit',async e=>{e.preventDefault();if(busy)return;busy=true;notice();$('start').disabled=true;try{const r=await api('/api/start',config());await selectRun(r.id);}catch(e){notice(e.message);}finally{busy=false;await refresh();}});
 $('batchStart').onclick=async()=>{try{notice();await api('/api/batch',config());await refresh();}catch(e){notice(e.message);}};
-$('detect').onclick=async()=>{try{const r=await api('/api/lmstudio');$('model').innerHTML=r.models.map(m=>`<option value="${esc(m)}">${esc(m)}</option>`).join('') || '<option value="">没有可用模型</option>';$('lmstatus').textContent=r.available?'已连接 · 请确认模型已在 LM Studio 中加载':'尚未连接。请在 LM Studio 开启端口 1234 的本地服务。';}catch(e){notice(e.message);}};
+$('detect').onclick=async()=>{try{
+ const r=await api('/api/models');
+ const neural=r.neural||{};
+ let html='';
+ if(neural.available){
+   const online=neural.server&&neural.server.ok;
+   html+=`<div class="model-row"><b>神经网络检查点</b><span>latest.pt · 第 ${neural.step||0} 步</span><em class="${online?'ok':'warn'}">${online?'推理服务在线':'推理服务未启动（会自动回退到启发式）'}</em></div>`;
+ }else{
+   html+='<div class="model-row"><b>神经网络检查点</b><span>尚未生成</span><em class="warn">下一次训练会创建</em></div>';
+ }
+ const external=(r.providers||[]);
+ if(external.length){
+   html+=external.map(p=>`<div class="model-row"><b>${esc(p.label)}</b><span>${esc(p.url)}</span><em class="ok">${p.models.length} 个模型</em></div>`).join('');
+ }else{
+   html+='<div class="model-row"><b>外部语言模型</b><span>未发现</span><em class="muted">可选，不影响自战</em></div>';
+ }
+ $('modelStatus').innerHTML=html;
+ const options=[]; const lm=external.find(p=>p.id==='lmstudio');
+ if(lm){ for(const m of (lm.models||[])) options.push({value:m,label:'LM Studio · '+m}); }
+ $('model').innerHTML=options.length?options.map(o=>`<option value="${esc(o.value)}">${esc(o.label)}</option>`).join(''):'<option value="">不使用外部模型</option>';
+ $('lmstatus').textContent=lm?'已连接 LM Studio；选择「LM Studio」席位时才会调用。':'未发现 LM Studio。Ollama 等其他服务仅作检测提示，当前决策器只接入 LM Studio。启发式与神经网络席位不受影响。';
+}catch(e){notice(e.message);}};
 async function refresh(){
  const data=await api('/api/runs'); items=data.runs;
  $('start').disabled=!!data.active || !!data.batch.active || busy;
  $('batchStart').disabled=$('start').disabled;
  $('batchStatus').replaceChildren();
- if(data.batch.active){$('batchStatus').textContent=`批量自战 ${data.batch.index} / ${data.batch.total} `;const b=document.createElement('button');b.textContent='停止批次';b.className='secondary';b.onclick=async()=>{await api('/api/batch-stop',{});await refresh();};$('batchStatus').append(b);}
+ if(data.batch.active){$('batchStatus').textContent=`批量自战 ${data.batch.index} / ${data.batch.total||'∞'} `;const b=document.createElement('button');b.textContent='停止批次';b.className='secondary';b.onclick=async()=>{await api('/api/batch-stop',{});await refresh();};$('batchStatus').append(b);}
  else if(data.batch.error){$('batchStatus').textContent='最近批次：'+data.batch.error;}
  $('history').innerHTML=items.length?items.slice(0,40).map(r=>`<button class="history-item ${r.id===selected?'selected':''}" data-run="${r.id}"><span class="history-main"><span>${r.config.players} 人 · 种子 ${r.config.seed}</span><span>${statusNames[r.status] || r.status}</span></span><small>${new Date(r.created*1000).toLocaleString('zh-CN',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})} · ${r.action_count || 0} 步${r.elapsed?' · '+Math.round(r.elapsed)+' 秒':''}</small></button>`).join(''):'<p class="muted">暂无对局记录</p>';
  $('history').querySelectorAll('[data-run]').forEach(e=>e.onclick=()=>selectRun(e.dataset.run));
@@ -193,7 +214,7 @@ setInterval(async()=>{if(pollBusy)return;pollBusy=true;try{await refresh();}catc
 async function refreshTrain(){
  try{
   const t=await api('/api/train'); const s=t.status||{};
-  $('trainState').textContent=t.running?'训练中':'已停止';
+  $('trainState').textContent=t.running?(s.continuous?'持续训练中':'训练中'):'已停止';
   $('trainState').className='muted '+(t.running?'live':'');
   $('trainGames').textContent=s.games||0;
   $('trainDecisions').textContent=(s.decisions||0).toLocaleString('en-US');
@@ -202,9 +223,18 @@ async function refreshTrain(){
   $('trainWinrate').textContent=Number.isFinite(s.winrate)?(s.winrate*100).toFixed(0)+'%':'—';
   $('trainStart').disabled=!!t.running; $('trainStop').disabled=!t.running;
   const last=(t.log&&t.log.length)?t.log[t.log.length-1]:null;
+  const report=(t.reports&&t.reports.length)?t.reports[0]:null;
+  $('trainExtra').innerHTML=[
+    '已跑 <b>'+(s.games||0)+'</b> 局',
+    '退化 <b>'+(s.degenerate||0)+'</b> 局',
+    '速率 <b>'+(s.rate??0)+'</b> 局/分',
+    last?('损失 <b>'+Number(last.loss||0).toFixed(3)+'</b>'):'',
+    report?('<a href="/api/report?file='+encodeURIComponent(report.name)+'" target="_blank">最近分析：'+esc(report.name)+'</a>'):''
+  ].filter(Boolean).join(' · ');
   $('trainNote').textContent=last?('最近一步：'+(last.step||0)+' 步 · 样本 '+(last.samples||0)+' · 损失 '+Number(last.loss||0).toFixed(3)+' · 数据文件 '+t.samples):'自战记录写入 train\\data，模型写入 train\\checkpoints\\latest.pt。';
  }catch(e){}
 }
 $('trainStart').onclick=async()=>{try{await api('/api/train',{action:'start',workers:Number($('trainWorkers').value),minutes:Number($('trainMinutes').value)});await refreshTrain();}catch(e){notice(e.message);}};
 $('trainStop').onclick=async()=>{try{await api('/api/train',{action:'stop'});await refreshTrain();}catch(e){notice(e.message);}};
+$('analyze').onclick=async()=>{try{notice('正在读取自战记录生成分析…');const r=await api('/api/analyze',{});notice(r.report?('分析已生成：'+r.report):'分析已生成');await refreshTrain();}catch(e){notice(e.message);}};
 refreshTrain(); setInterval(refreshTrain, 4000);

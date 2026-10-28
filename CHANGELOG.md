@@ -4,6 +4,74 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/) and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [1.1.0] - 2026-10-28
+
+Continuous self-play, action-type/feature repair, and a Chicago/off-board-aware policy.
+
+### Added
+
+- **Continuous self-play**: `train/orchestrate.py` runs until stopped (the default);
+  `--minutes 0` / no limit, `--report-every 1000`, per-game log in
+  `train/games.jsonl`, unique global game indices across workers. The web
+  training panel now starts continuous mode by default (6 workers, 0 minutes).
+- **Local model report** (`GET /api/models`): detects the project's neural
+  checkpoint + inference server and optional LM Studio / Ollama / llama.cpp /
+  vLLM / text-generation-webui endpoints. The web panel explains which model is
+  actually driving self-play.
+- **Neural seats** in the web UI (`neural` strategy); they use the local
+  checkpoint and need no external model.
+- **Per-1000-game analysis** (`train/analyze.py` → `train/reports/logic-N.md`):
+  action mix, decision-rank/entropy, track and off-board stats, Chicago/C5
+  rates, winner correlations, self-correction notes, and a next-block fix list.
+  Generated automatically by the orchestrator; also available from the web.
+- Connectivity analysis (`p1846/connectivity.rb`): rotation-aware edge
+  connectivity, off-board links, through-edges, upgrade revenue gain, Chicago
+  distance/gateway.
+
+### Changed
+
+- Tile scoring now depends on the **rotated** tile: joining an off-board is
+  rewarded (+42 + 0.6 × revenue), pointing at an off-board without joining it
+  is punished (−30). Chicago D6 upgrades get explicit green/brown/grey bonuses
+  and the C5 link bonus.
+- Heuristic weights: C&WI 38, MS 44; Chicago token +58; reserved/teleport
+  token candidates are generated for company-owned abilities.
+- Track-laying base score cut from 10 to 2 with a higher cost charge and a
+  dead-end stub penalty, so "pass and keep the treasury" is a real option.
+- Train-rust reserve: in phases III/IV a company holding a 2/4 train reserves
+  the next train price before spending on track, reducing forced bankruptcies.
+- Neural policy scores are normalised per decision (mean 0, std 1, clamp ±3)
+  and added at weight 15 instead of raw logits × 60; self-play uses
+  σ-scaled softmax with 5% uniform exploration.
+- Feature version 2: action vectors are 48-wide and the 14 action-type bits are
+  no longer all zero; six previously padded hex features now carry off-board
+  link, off-board edges, Chicago gateway, upgrade gain, through-edges and
+  Chicago distance. State features add Chicago/C5 facts.
+- The arena batch supports `count=0` (run continuously) and the training
+  launcher defaults to continuous mode.
+
+### Fixed
+
+- **Neural collapse to "pass forever"**: the old checkpoint/feature pipeline
+  produced games with only pass actions (no par, no track). Old samples are
+  filtered by feature version and degenerate games are rejected before
+  training; a pass-loop guard aborts and retries such games.
+- **Action-type features were always zero** because the arena candidate did not
+  carry `type`; fixed in `Arena1846::Bot#add`.
+- **C&WI's free Chicago token was never used**: the special-token action is now
+  generated for company-owned abilities and the engine's `SpecialToken` step is
+  found via `round.actions_for(company)`.
+- **Upgrade token mapping**: old-city tokens are mapped to the new tile before
+  deciding whether an upgrade joins the off-board.
+
+### Validation
+
+- Fresh neural self-play: 500–840 decisions per game, 0 degenerate games,
+  Chicago green and C5 routes appear in every sampled game, 0/9 off-board
+  rotations missed in the first fixed test.
+- `python train/analyze.py` runs on the live sample and writes a Chinese
+  report; `/api/report` serves it in the browser.
+
 ## [1.0.0] - 2026-10-28
 
 First public release. The arena runs complete 3–5 player 1846 games with

@@ -5,7 +5,7 @@
 [![verify](https://github.com/Pig9013/1846-selfplay-arena/actions/workflows/verify.yml/badge.svg)](https://github.com/Pig9013/1846-selfplay-arena/actions/workflows/verify.yml)
 [![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-**版本 1.0.0** · Windows · 离线运行 · 不依赖网站账号和云端模型
+**版本 1.1.0** · Windows · 离线运行 · 不依赖网站账号和云端模型
 
 ---
 
@@ -15,7 +15,7 @@
 
 - **规则执行**：`18xx-master`（tobymao/18xx，MIT）作为唯一裁判；机器人只生成候选，最终由引擎校验。
 - **真实对局审计**：`audit/` 从引擎导出瓦片目录，重放 95 份 18xx.games 日志的铺轨/时代/奖励分配，独立重算 **69,494 条线路收入**，与网站记录一致率 **99.99%**。
-- **自学习回路**：KataGo 式的最小实现——多进程自战采样 → 策略/价值网络训练 → 热加载新模型 → 对启发式基线评估胜率。
+- **自学习回路**：KataGo 式的最小实现——多进程持续自战采样 → 策略/价值网络训练 → 热加载新模型 → 对启发式基线评估胜率；每 1000 局自动生成一份「行动逻辑分析」。
 - **可观察**：网页实时显示版图、成本、外域数值、奖励归属、瓦片库存、每回合铺轨/升级槽位。
 
 > 1846 是 Thomas Lehmann 设计、GMT Games 出版的作品。本仓库**不包含**规则书、美术素材或任何官方文件；规则引擎是第三方 MIT 代码，自战数据由本项目的机器人产生。
@@ -28,10 +28,10 @@
 | 外域与东西向 | 外域收入按时代（黄/棕）取值；E→E 禁止、W→W 允许、Holland 与 Louisville 中立；E/W 奖励取两端外域图标数值之和 |
 | 私营公司 | Boomtown / Meat Packing / Steamboat 按**格子**与**拥有者**生效（码头 Wheeling/Holland +$40，其余 +$20），分配与归属可见 |
 | 机器人 | 规则感知候选生成（连接检查、瓦片库存、颜色/保留轨道、股份与列车限制），启发式打分，可叠加神经网络策略 |
-| 自学习 | `p1846/selfplay.rb` 采样 → `train/nnserver.py` 推理 → `train/trainer.py` 训练 → `train/orchestrate.py` 编排 |
+| 自学习 | `p1846/selfplay.rb` 采样 → `train/nnserver.py` 推理 → `train/trainer.py` 训练 → `train/orchestrate.py` 持续编排 → `train/analyze.py` 每 1000 局分析 |
 | 观战 | 本地网页：版图、回放、玩家资产、公司表、决策理由、训练面板 |
 | 审计 | `audit/log_audit.py` 用真实日志重算线路收入；`verify_game.rb` 逐行动重放并核对现金守恒 |
-| 资源占用 | 子进程低于正常优先级；并发默认「核心数 − 2」；训练只用 2 个 torch 线程 |
+| 资源占用 | 子进程低于正常优先级；默认 6 个自战进程；训练只用 2 个 torch 线程 |
 
 ## 快速开始
 
@@ -69,10 +69,10 @@ python server.py --no-browser --port 1846
 ### 跑自学习
 
 ```bat
-python train\orchestrate.py --workers 6 --minutes 120 --train-every 4 --steps 200 --eval-every 30 --seed 3000
+python train\orchestrate.py --workers 6 --minutes 0 --train-every 4 --steps 200 --eval-every 300 --report-every 1000
 ```
 
-或双击 `启动训练.cmd`。模型写入 `train/checkpoints/latest.pt`，样本写入 `train/data/`，网页「自学习训练」面板可启停。
+`--minutes 0`（默认）表示**一直跑，直到你停止**。也可以双击 `启动训练.cmd`。模型写入 `train/checkpoints/latest.pt`，样本写入 `train/data/`，每 1000 局的分析写入 `train/reports/logic-N.md`；网页「自学习训练」面板可启停、生成分析。
 
 ### 校验规则
 
@@ -94,11 +94,13 @@ verify_all.py          批量复核
 p1846/board.rb         版图与规则数值导出（成本、边费、外域、标签、库存、奖励归属）
 p1846/actions.rb       合法候选生成 + 线路组合搜索（上游 AutoRouter）
 p1846/policy.rb        启发式打分
-p1846/model.rb         神经网络特征编码（128 维状态 / 40 维动作）
+p1846/model.rb         神经网络特征编码（128 维状态 / 48 维动作）
+p1846/connectivity.rb  旋转连通 / 外域连接 / 芝加哥门户分析
 p1846/selfplay.rb      自战采样进程（写出训练样本）
 train/net.py           策略/价值网络
 train/nnserver.py      本机推理服务（热加载检查点）
 train/trainer.py       训练循环（优势加权模仿 + 价值回归）
+train/analyze.py       每 1000 局行动逻辑分析报告
 train/orchestrate.py   多进程自战 + 训练 + 评估编排
 audit/                 真实对局日志审计工具与瓦片目录
 web/                   中文观战与训练面板
@@ -120,7 +122,7 @@ ruby verify_game.rb "examples\selfplay\4p-seed606\game.json"
 每局一个 JSONL，逐行：
 
 ```json
-{"type":"decision","actor":"1","state":[128 个浮点],"actions":[[40 个浮点],...],"chosen":0,"prior":[...]}
+{"type":"decision","actor":"1","state":[128 个浮点],"actions":[[48 个浮点],...],"chosen":0,"prior":[...]}
 {"type":"result","scores":{"1":5506,"2":0,...},"z":{"1":0.98,...}}
 ```
 
@@ -139,11 +141,21 @@ ruby verify_game.rb "examples\selfplay\4p-seed606\game.json"
 
 铺轨费用的真实分布也与规则 6.48 一致：H16 首铺 $40 / 升级 $20；B16 不跨山边 $20、跨过 $60；I11 跨河 $60；F18 出现 20/40/60/80 组合。
 
-## 自学习现状（1.0）
+## 自学习现状（1.1）
 
-- 回路已打通：9 分钟 6 进程可产生约 100+ 局、数万决策样本，损失稳定下降。
-- 对三个启发式席位的小样本胜率约 0.67（样本少，仅供参考，**不代表棋力已经超过人类或启发式**）。
+- **持续自战**：6 进程默认一直开局，不点停止不会自己停；每局写入 `train/data/`，
+  每 1000 局自动写一份 `train/reports/logic-N.md`。
+- **本地模型**：自战由项目自带的神经网络检查点（`latest.pt`）+ 启发式先验驱动。
+  LM Studio 是可选的第三方决策器；Ollama / llama.cpp 等只做检测提示，当前不接入决策。
+  不运行任何外部模型也能自战和训练。网页「本地模型检测」会显示检查点、推理服务与外部模型状态。
+- **特征修复（v1.1）**：动作类型位不再全为 0，动作向量 48 维；新增外域连接、
+  旋转连通、芝加哥门户等特征；旧版 40 维/退化样本会被训练器过滤。
+- **策略修复**：铺轨评分看旋转后的真实连通；芝加哥 D6 升级与 C5 连接有显式权重；
+  C&WI 的免费芝加哥站会被实际使用。样本中芝加哥升级/C5 线路已从「很少」变为常见。
+- **尺度修复**：网络分数按决策标准化后以 15 分权重叠加，采样带 5% 均匀探索，
+  避免早期「永远 pass」把整局锁死。
 - 没有 MCTS：引擎局面无法廉价克隆，当前用「候选排序 + 先验蒸馏 + 优势加权」代替树搜索。
+- 胜率仍然只是参考：小样本、同批自战、4 人局随机基线 25%，**不代表已经超过人类**。
 
 ## 已知限制
 
@@ -154,7 +166,7 @@ ruby verify_game.rb "examples\selfplay\4p-seed606\game.json"
 
 ## 版本
 
-当前 **1.0.0**。变更见 [CHANGELOG.md](CHANGELOG.md)。路线图：补齐特殊能力候选、把铺轨槽位/库存/奖励归属纳入网络特征、加入更严格的对手池评估。
+当前 **1.1.0**。变更见 [CHANGELOG.md](CHANGELOG.md)。路线图：补齐特殊能力候选、把铺轨槽位/库存/奖励归属纳入网络特征、加入更严格的对手池评估。
 
 ## English summary
 
@@ -163,8 +175,8 @@ checkout of the MIT-licensed [tobymao/18xx](https://github.com/tobymao/18xx)
 engine judges every action; this project adds rules-aware candidate generation,
 a data-driven board/replay UI, a KataGo-style self-play training loop and a
 real-log rule auditor (95 logs, 69,494 route revenues recomputed, 99.99% match).
-Version 1.0.0. Sample games and compressed training samples live under
-`examples/` and in the v1.0.0 release. The repository does not vendor the rules
+Version 1.1.0. Sample games and compressed training samples live under
+`examples/` and in the release. The repository does not vendor the rules
 engine, the Ruby runtime, or any official 1846 assets.
 
 ## 许可与声明

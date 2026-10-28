@@ -21,6 +21,8 @@ RUNS = ROOT / "runs"
 TRAIN_STATUS = ROOT / "train" / "status.json"
 TRAIN_LOG = ROOT / "train" / "log.jsonl"
 TRAIN_PID = ROOT / "train" / "run.pid"
+TRAIN_GAMES = ROOT / "train" / "games.jsonl"
+TRAIN_REPORTS = ROOT / "train" / "reports"
 TRAIN_SCRIPT = ROOT / "train" / "orchestrate.py"
 RUBY = ROOT / "runtime/rubyinstaller-3.4.9-1-x64/bin/ruby.exe"
 STYLES = {"balanced", "growth", "income", "random", "lmstudio", "neural"}
@@ -53,6 +55,53 @@ def read(path: Path, default=None):
         return default
 
 
+def probe_json(url, timeout=0.8):
+    try:
+        with urllib.request.urlopen(url, timeout=timeout) as response:
+            return json.load(response)
+    except (urllib.error.URLError, OSError, ValueError):
+        return None
+
+
+def local_model_report():
+    """Detect optional local LLM servers and the project's own checkpoint.
+
+    The arena does not require any of these. The neural checkpoint is the
+    built-in model that drives self-play; LM Studio / Ollama / llama.cpp are
+    optional external decision sources.
+    """
+    providers = []
+
+    data = probe_json("http://127.0.0.1:1234/v1/models")
+    if data is not None:
+        providers.append({"id": "lmstudio", "label": "LM Studio", "url": "http://127.0.0.1:1234",
+                          "ok": True,
+                          "models": [m.get("id") for m in data.get("data", []) if m.get("id")]})
+
+    data = probe_json("http://127.0.0.1:11434/api/tags")
+    if data is not None:
+        providers.append({"id": "ollama", "label": "Ollama", "url": "http://127.0.0.1:11434",
+                          "ok": True,
+                          "models": [m.get("name") for m in data.get("models", []) if m.get("name")]})
+
+    for port, label in ((8080, "llama.cpp"), (8000, "vLLM"), (5000, "text-generation-webui")):
+        data = probe_json(f"http://127.0.0.1:{port}/v1/models")
+        if data is not None:
+            providers.append({"id": label.lower().replace(".", "").replace("-", ""),
+                              "label": label, "url": f"http://127.0.0.1:{port}", "ok": True,
+                              "models": [m.get("id") for m in data.get("data", []) if m.get("id")]})
+
+    checkpoint = ROOT / "train" / "checkpoints" / "latest.pt"
+    status = read(TRAIN_STATUS, {})
+    health = probe_json("http://127.0.0.1:18346/health")
+    neural = {"available": checkpoint.is_file(), "checkpoint": str(checkpoint),
+              "step": status.get("checkpoint_step") or status.get("train_steps") or 0,
+              "mtime": checkpoint.stat().st_mtime if checkpoint.is_file() else None,
+              "size": checkpoint.stat().st_size if checkpoint.is_file() else 0,
+              "server": health}
+    return {"providers": providers, "neural": neural, "heuristic": True}
+
+
 def validate(raw):
     players = int(raw.get("players", 3))
     seed = int(raw.get("seed", 42))
@@ -69,8 +118,11 @@ def validate(raw):
         raise ValueError("使用 LM Studio 时，请先检测并选择已加载的模型。")
     config = {"players": players, "seed": seed, "strategies": strategies, "model": model, "max_actions": 3000}
     if "neural" in strategies:
+        # The local neural checkpoint is a separate decision source from LM
+        # Studio. It needs no external model server to be selectable; arena.rb
+        # falls back to the heuristic if the inference server is down.
         config["net_url"] = os.environ.get("DSH_1846_NET", "http://127.0.0.1:18346/scores")
-        config["net_weight"] = 60
+        config["net_weight"] = 15
     return config
 
 
@@ -110,7 +162,7 @@ def start_run(config, *, from_batch=False):
         path.mkdir()
         save(path / "config.json", config)
         data = {"id": run_id, "config": config, "status": "running", "created": time.time(),
-                "frames": 0, "action_count": 0, "error": None, "version": "1.0.0"}
+                "frames": 0, "action_count": 0, "error": None, "version": "1.1.0"}
         save(path / "summary.json", data)
         LIVE[run_id] = {"summary": data, "state": None, "board": [], "decision": None,
                         "logs": [], "offsets": [], "process": None, "pause": False,
@@ -277,10 +329,11 @@ def history_frame(run_id, index):
 
 def batch_worker(config, count):
     global BATCH
-    for i in range(count):
+    i = 0
+    while count == 0 or i < count:
         if BATCH.get("cancelled"):
             break
-        current = dict(config, seed=config["seed"] + i)
+        current = dict(config, seed=(config["seed"] + i) % 2_000_000_000)
         # Rotate seats within a batch to make strategy comparisons less seat dependent.
         rotation = i % config["players"]
         current["strategies"] = config["strategies"][rotation:] + config["strategies"][:rotation]
@@ -297,6 +350,7 @@ def batch_worker(config, count):
         except Exception as exc:
             BATCH["error"] = str(exc)
             break
+        i += 1
     BATCH["active"] = False
     save(RUNS / "last-batch.json", BATCH)
 
@@ -310,6 +364,17 @@ def train_snapshot():
             entries = [json.loads(line) for line in lines if line.strip()]
         except (OSError, json.JSONDecodeError):
             entries = []
+    recent_games = []
+    if TRAIN_GAMES.is_file():
+        try:
+            lines = TRAIN_GAMES.read_text(encoding="utf-8").strip().splitlines()[-12:]
+            recent_games = [json.loads(line) for line in lines if line.strip()]
+        except (OSError, json.JSONDecodeError):
+            recent_games = []
+    reports = []
+    if TRAIN_REPORTS.is_dir():
+        for path in sorted(TRAIN_REPORTS.glob("logic-*.md"), key=lambda p: p.stat().st_mtime, reverse=True)[:5]:
+            reports.append({"name": path.name, "mtime": path.stat().st_mtime, "size": path.stat().st_size})
     proc = TRAIN_PROC
     running = bool(proc is not None and proc.poll() is None)
     if not running and TRAIN_STATUS.is_file():
@@ -320,35 +385,94 @@ def train_snapshot():
             running = False
     data_dir = ROOT / "train" / "data"
     files = len(list(data_dir.glob("*.jsonl"))) if data_dir.is_dir() else 0
-    return {"status": status, "log": entries, "running": running, "samples": files}
+    return {"status": status, "log": entries, "recent_games": recent_games,
+            "running": running, "samples": files, "reports": reports}
 
 
 def start_training(payload):
     global TRAIN_PROC
     if TRAIN_PROC is not None and TRAIN_PROC.poll() is None:
         raise ValueError("训练已经在运行。")
-    workers = max(1, min(int(payload.get("workers", 4)), max(1, (os.cpu_count() or 4) - 2)))
-    minutes = max(1, min(float(payload.get("minutes", 30)), 720))
+    # An orchestrator started from the launcher keeps status.json fresh even
+    # though this server did not spawn it.
+    if TRAIN_PROC is None and TRAIN_STATUS.is_file():
+        try:
+            if time.time() - TRAIN_STATUS.stat().st_mtime < 10 and not read(TRAIN_STATUS, {}).get("stopped"):
+                raise ValueError("训练已经在运行（由外部窗口启动）。请先停止那边的训练。")
+        except OSError:
+            pass
+    cores = max(1, (os.cpu_count() or 4) - 2)
+    workers = max(1, min(int(payload.get("workers", 6)), cores, 12))
+    minutes = float(payload.get("minutes", 0))
+    minutes = 0.0 if minutes <= 0 else min(minutes, 10080.0)
     seed = int(payload.get("seed", 2000))
     flags = subprocess.CREATE_NO_WINDOW | 0x00004000  # below normal priority
-    TRAIN_PROC = subprocess.Popen(
-        [sys.executable, "-u", str(TRAIN_SCRIPT), "--workers", str(workers), "--minutes", str(minutes),
-         "--seed", str(seed), "--train-every", "2", "--steps", "150"],
-        cwd=ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, creationflags=flags)
+    command = [sys.executable, "-u", str(TRAIN_SCRIPT), "--workers", str(workers),
+               "--minutes", str(minutes), "--seed", str(seed), "--train-every", "4",
+               "--steps", "150", "--net-weight", "15", "--temperature", "1.5",
+               "--report-every", "1000", "--eval-every", "300", "--keep", "4000"]
+    if minutes == 0:
+        command.append("--continuous")
+    TRAIN_PROC = subprocess.Popen(command, cwd=ROOT, stdout=subprocess.DEVNULL,
+                                  stderr=subprocess.DEVNULL, creationflags=flags)
     TRAIN_PID.write_text(str(TRAIN_PROC.pid), encoding="utf-8")
-    return {"started": TRAIN_PROC.pid, "workers": workers, "minutes": minutes}
+    return {"started": TRAIN_PROC.pid, "workers": workers, "minutes": minutes,
+            "continuous": minutes == 0}
+
+
+def run_analysis():
+    script = ROOT / "train" / "analyze.py"
+    if not script.is_file():
+        raise ValueError("分析脚本尚未安装。")
+    status = read(TRAIN_STATUS, {})
+    label = int(status.get("games", 0) or 0)
+    try:
+        proc = subprocess.run([sys.executable, str(script), "--data", str(ROOT / "train" / "data"),
+                               "--out", str(TRAIN_REPORTS), "--label", str(label)],
+                              cwd=ROOT, capture_output=True, text=True, encoding="utf-8",
+                              errors="replace", timeout=300)
+    except subprocess.TimeoutExpired:
+        raise ValueError("分析超时；样本较多时请稍后再试。") from None
+    if proc.returncode != 0:
+        raise ValueError((proc.stderr or proc.stdout or "分析失败")[-500:])
+    newest = None
+    if TRAIN_REPORTS.is_dir():
+        files = sorted(TRAIN_REPORTS.glob("logic-*.md"), key=lambda p: p.stat().st_mtime, reverse=True)
+        newest = files[0] if files else None
+    return {"report": str(newest.relative_to(ROOT)) if newest else None,
+            "label": label, "stdout": (proc.stdout or "")[-800:]}
+
+
+def _kill_training(pid):
+    subprocess.run(["taskkill", "/PID", str(pid), "/T", "/F"], stdout=subprocess.DEVNULL,
+                   stderr=subprocess.DEVNULL, creationflags=subprocess.CREATE_NO_WINDOW)
 
 
 def stop_training():
     global TRAIN_PROC
     proc = TRAIN_PROC
-    if proc is None or proc.poll() is not None:
-        TRAIN_PROC = None
-        return {"stopped": False}
-    subprocess.run(["taskkill", "/PID", str(proc.pid), "/T", "/F"], stdout=subprocess.DEVNULL,
-                   stderr=subprocess.DEVNULL, creationflags=subprocess.CREATE_NO_WINDOW)
-    time.sleep(0.5)
+    pid = None
+    if proc is not None and proc.poll() is None:
+        pid = proc.pid
+    elif TRAIN_PID.is_file():
+        # Only trust the PID file while the orchestrator is still writing
+        # status.json. A stale PID could belong to an unrelated process after
+        # Windows reuses it.
+        try:
+            fresh = TRAIN_STATUS.is_file() and time.time() - TRAIN_STATUS.stat().st_mtime < 60
+            if fresh:
+                pid = int(TRAIN_PID.read_text(encoding="utf-8").strip())
+        except (OSError, ValueError):
+            pid = None
     TRAIN_PROC = None
+    if pid is None:
+        return {"stopped": False}
+    _kill_training(pid)
+    time.sleep(0.5)
+    try:
+        TRAIN_PID.unlink()
+    except OSError:
+        pass
     return {"stopped": True}
 
 
@@ -392,6 +516,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self.respond(history_frame(query["id"][0], int(query["index"][0])))
             if path == "/api/train":
                 return self.respond(train_snapshot())
+            if path == "/api/models":
+                return self.respond(local_model_report())
             if path == "/api/lmstudio":
                 try:
                     with urllib.request.urlopen("http://127.0.0.1:1234/v1/models", timeout=3) as response:
@@ -400,6 +526,21 @@ class Handler(BaseHTTPRequestHandler):
                                                                     if "embedding" not in m["id"].lower()]})
                 except Exception:
                     return self.respond({"available": False, "models": []})
+            if path == "/api/report":
+                name = query.get("file", [""])[0]
+                if not re.fullmatch(r"logic-\d+\.md", name):
+                    raise ValueError("无效的报告名。")
+                report = TRAIN_REPORTS / name
+                if not report.is_file():
+                    raise ValueError("报告尚未生成。")
+                blob = report.read_bytes()
+                self.send_response(200)
+                self.send_header("Content-Type", "text/markdown; charset=utf-8")
+                self.send_header("Content-Length", str(len(blob)))
+                self.send_header("Cache-Control", "no-store")
+                self.end_headers()
+                self.wfile.write(blob)
+                return
             if path == "/api/download":
                 folder = run_dir(query["id"][0])
                 name = query.get("file", ["game.json"])[0]
@@ -450,20 +591,23 @@ class Handler(BaseHTTPRequestHandler):
             if self.path == "/api/batch":
                 config = validate(raw)
                 count = int(raw.get("count", 3))
-                if not 1 <= count <= 100:
-                    raise ValueError("每批支持 1—100 局。")
-                if config["seed"] + count - 1 > 2_000_000_000:
+                if not 0 <= count <= 100:
+                    raise ValueError("每批支持 0—100 局；0 表示一直连续运行。")
+                if count and config["seed"] + count - 1 > 2_000_000_000:
                     raise ValueError("批次种子超出范围。")
                 with LOCK:
                     if ACTIVE or BATCH["active"]:
                         raise ValueError("请先结束当前对局或批次。")
-                    BATCH = {"active": True, "total": count, "index": 0, "runs": [], "cancelled": False}
+                    BATCH = {"active": True, "total": count, "index": 0, "runs": [],
+                             "cancelled": False, "continuous": count == 0}
                     threading.Thread(target=batch_worker, args=(config, count), daemon=True).start()
                 return self.respond(BATCH)
             if self.path == "/api/train":
                 if raw.get("action") == "stop":
                     return self.respond(stop_training())
                 return self.respond(start_training(raw))
+            if self.path == "/api/analyze":
+                return self.respond(run_analysis())
             if self.path == "/api/batch-stop":
                 BATCH["cancelled"] = True
                 if ACTIVE:

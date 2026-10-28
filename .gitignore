@@ -14,3 +14,8 @@ __pycache__/
 *.log
 train/log.jsonl
 dist/
+train/archive/
+train/reports/
+train/games.jsonl
+train/run.out.log
+train/run.err.log

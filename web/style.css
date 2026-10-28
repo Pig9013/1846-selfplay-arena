@@ -133,3 +133,16 @@ footer{font-size:10.5px;color:var(--muted);letter-spacing:1px;border-top:1px sol
  .bottom-grid{grid-template-columns:1fr}
  .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
+
+
+.model-box { border: 1px solid rgba(0,0,0,.12); border-radius: 10px; padding: 10px 12px; margin: 10px 0; background: rgba(255,255,255,.35); }
+.model-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; }
+.model-status { display: grid; gap: 5px; font-size: 12px; margin-bottom: 8px; }
+.model-row { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; align-items: baseline; }
+.model-row b { font-weight: 600; }
+.model-row span { color: #666; font-size: 11px; overflow-wrap: anywhere; }
+.model-row em { font-size: 10px; font-style: normal; letter-spacing: .03em; }
+.model-row em.ok { color: #2d6b3f; }
+.model-row em.warn { color: #9a5a16; }
+.model-row em.muted { color: #888; }
+#trainExtra a { color: #5b3b1d; text-decoration: underline; }

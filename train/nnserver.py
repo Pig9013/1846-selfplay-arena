@@ -1,6 +1,7 @@
 """Local inference server for the 1846 self-play workers.
 
-POST /scores  {"state": [...128], "actions": [[...40], ...]} -> {"scores": [...]}
+POST /scores  {"state": [...128], "actions": [[...48], ...]} -> {"scores": [...]}
+GET  /health  -> {"ok": true, "step": N, "loaded": true}
 Reloads checkpoints/latest.pt whenever it changes, so workers always use the
 newest trained network without restarting.
 """
@@ -21,10 +22,12 @@ LOCK = threading.Lock()
 MODEL = PolicyValueNet()
 MODEL.eval()
 MTIME = None
+STEP = 0
+LOADED = False
 
 
 def maybe_reload():
-    global MTIME
+    global MTIME, STEP, LOADED
     try:
         mtime = CKPT.stat().st_mtime
     except FileNotFoundError:
@@ -35,6 +38,8 @@ def maybe_reload():
         state = torch.load(CKPT, map_location="cpu", weights_only=True)
         MODEL.load_state_dict(state["model"])
         MODEL.eval()
+        STEP = int(state.get("step", 0))
+        LOADED = True
         MTIME = mtime
         print(f"[nn] loaded checkpoint step={state.get('step')}", flush=True)
     except Exception as exc:  # noqa: BLE001 - a half-written checkpoint must not kill the server
@@ -46,6 +51,20 @@ class Handler(BaseHTTPRequestHandler):
 
     def log_message(self, *args):
         pass
+
+    def do_GET(self):
+        if self.path.split("?")[0] != "/health":
+            self.send_response(404)
+            self.end_headers()
+            return
+        maybe_reload()
+        body = json.dumps({"ok": True, "step": STEP, "loaded": LOADED,
+                           "checkpoint": str(CKPT)}).encode()
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
 
     def do_POST(self):
         length = int(self.headers.get("Content-Length", "0"))

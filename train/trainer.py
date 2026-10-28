@@ -28,18 +28,40 @@ def load_games(files):
     for path in files:
         decisions = []
         result = None
+        meta = {}
         try:
             with open(path, encoding="utf-8") as handle:
                 for line in handle:
                     row = json.loads(line)
-                    if row.get("type") == "decision":
+                    kind = row.get("type")
+                    if kind == "decision":
                         decisions.append(row)
-                    elif row.get("type") == "result":
+                    elif kind == "result":
                         result = row
+                    elif kind == "meta":
+                        meta = row
         except (OSError, json.JSONDecodeError):
             continue
-        if decisions and result:
-            games.append({"decisions": decisions, "z": result["z"], "scores": result["scores"]})
+        # Old checkpoints/samples used a 40-wide action vector whose first 14
+        # "type" bits were always zero (the arena never attached candidate
+        # type). Those samples teach the net to ignore action type, so they are
+        # not reusable. Degenerate pass-only games are discarded for the same
+        # reason.
+        if meta.get("degenerate") or meta.get("feature_version", 0) < 2:
+            continue
+        if not decisions or not result:
+            continue
+        for decision in decisions:
+            actions = decision.get("actions") or []
+            for i, action in enumerate(actions):
+                if len(action) < ACTION_SIZE:
+                    actions[i] = action + [0.0] * (ACTION_SIZE - len(action))
+                elif len(action) > ACTION_SIZE:
+                    actions[i] = action[:ACTION_SIZE]
+            state = decision.get("state") or []
+            decision["state"] = (state + [0.0] * STATE_SIZE)[:STATE_SIZE]
+        games.append({"decisions": decisions, "z": result["z"], "scores": result["scores"],
+                      "meta": meta})
     return games
 
 

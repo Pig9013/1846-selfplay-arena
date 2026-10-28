@@ -11,14 +11,24 @@
   <form id="setup">
     <div class="field-row"><label>玩家人数<select id="players"><option value="3">3 人</option><option value="4">4 人</option><option value="5">5 人</option></select></label><label>开局种子<input id="seed" type="number" min="0" max="2000000000" value="42" required></label></div>
     <div class="label-row"><span>席位 / 策略</span><span class="muted">可独立设置</span></div><div id="seats"></div>
-    <details class="advanced"><summary>本地模型与批量运行</summary><p>LM Studio 是可选决策器。先在其中开启本地服务并加载模型。</p><button type="button" id="detect" class="secondary full">检测 LM Studio</button><label>可用模型<select id="model"><option value="">尚未检测</option></select></label><p id="lmstatus" class="muted">规则机器人可以直接运行。</p><label>批次局数<input id="count" type="number" min="1" max="100" value="3"></label><button type="button" id="batchStart" class="secondary full">连续自战 · 轮换席位</button></details>
+    <details class="advanced"><summary>本地模型 / 持续自战</summary>
+      <p class="muted">自战默认由 <b>本地神经网络检查点 + 启发式先验</b> 驱动，不需要任何外部模型。LM Studio、Ollama 只是可选的第三方决策器。</p>
+      <div class="model-box">
+        <div class="model-head"><span>本地模型检测</span><button type="button" id="detect" class="secondary">检测</button></div>
+        <div id="modelStatus" class="model-status">尚未检测。点击「检测」查看神经网络检查点与可选外部模型。</div>
+        <label>可用外部模型<select id="model"><option value="">不使用外部模型</option></select></label>
+        <p id="lmstatus" class="muted">规则机器人可以直接运行；神经网络席位无需 LM Studio。</p>
+      </div>
+      <label>批次局数（0 = 一直跑）<input id="count" type="number" min="0" max="100" value="0"></label>
+      <button type="button" id="batchStart" class="secondary full">连续自战 · 轮换席位</button>
+    </details>
     <button class="primary full" id="start" type="submit">开始一场自战 <span>↗</span></button>
   </form>
   <div id="notice" role="status" aria-live="polite"></div>
   <div id="batchStatus"></div>
   <div class="history-heading"><span class="section-caption">对局档案</span><button id="refresh" class="icon-button" aria-label="刷新对局档案">↻</button></div>
   <div id="history" class="history"></div>
-  <p class="footnote">规则：18xx.games 开源引擎<br>当前 AI：启发式基线 / 可选本地语言模型<br>尚未进行神经网络自战训练</p>
+  <p class="footnote">规则：18xx.games 开源引擎<br>当前 AI：启发式 + 本地神经网络（持续训练）<br>可选 LM Studio 外部模型（Ollama 等仅检测）</p>
 </aside>
 <main>
   <section class="arena-top"><div><div class="section-caption">LIVE OBSERVATORY</div><h2 id="title">中西部铁路，等待发车</h2><p id="subtitle">选择席位策略，启动第一场 AI 自战。</p></div><span id="status" class="badge">准备就绪</span></section>
@@ -36,11 +46,13 @@
       <div><span>对启发式胜率</span><strong id="trainWinrate">—</strong></div>
     </div>
     <div class="train-controls">
-      <label>并发进程<input id="trainWorkers" type="number" min="1" max="12" value="4"></label>
-      <label>训练时长（分）<input id="trainMinutes" type="number" min="1" max="720" value="30"></label>
-      <button id="trainStart" class="primary">开始自学习</button>
+      <label>并发进程<input id="trainWorkers" type="number" min="1" max="12" value="6"></label>
+      <label>训练时长（分，0=持续）<input id="trainMinutes" type="number" min="0" max="10080" value="0"></label>
+      <button id="trainStart" class="primary">开始持续自学习</button>
       <button id="trainStop" class="secondary" disabled>停止</button>
+      <button id="analyze" class="secondary">生成行动分析</button>
     </div>
+    <p id="trainExtra" class="muted">持续模式：不点停止就一直自战，每 1000 局自动生成一份行动逻辑分析。</p>
     <p id="trainNote" class="muted">自战记录写入 train\data，模型写入 train\checkpoints\latest.pt；并发进程数不要超过物理核心数。</p>
   </section>
   <section class="panel companies"><div class="panel-heading"><span class="section-caption">铁路公司</span><span class="muted">金库 / 股价 / 列车组合 / 车站</span></div><div class="table-wrap"><table><thead><tr><th>公司</th><th>总裁</th><th>金库</th><th>股价</th><th>列车组合</th><th>车站</th><th>私营 / 奖励</th></tr></thead><tbody id="companies"><tr><td colspan="6" class="placeholder">等待公司开办</td></tr></tbody></table></div></section>
