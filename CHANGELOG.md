@@ -110,6 +110,19 @@ Revenue-first tile scoring, margin-weighted winner learning, and route/equity di
 - Route search results are cached per game action/company to avoid repeated
   AutoRouter work in UI/evaluation calls.
 
+### Route search / model decision
+
+- Route-search profiling now records calls, milliseconds and timeouts per game.
+  In a representative game route search was 31% of candidate time; an adaptive
+  budget (24 paths/0.8 s for <=2 trains, 40/1.2 s for <=4, 48/1.6 s otherwise)
+  reduced a later profile from 4.17 s to 1.24 s with no timeouts.
+- Fixed NeuralClient to default an empty URL path to `/scores`, which made the
+  first A/B runs silently heuristic-only.
+- A/B evaluation (same seeds, neural seat vs balanced/growth/income):
+  30 games, 192 wins 4 / top-2 9 / avg 2171; 512 wins 4 / top-2 8 / avg 2134.
+  No evidence 512 is better, so the live checkpoint reverted to 192 (step 270);
+  512 is kept at `checkpoints/512-step275.pt`. 1024 was not attempted.
+
 ### Validation
 
 - Route stops: 4-train 3.18 vs human 3.84; 5-train 4.53 vs 4.87;
