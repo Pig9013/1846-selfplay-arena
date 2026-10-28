@@ -9,6 +9,7 @@ ACTION_SIZE = 48
 class PolicyValueNet(nn.Module):
     def __init__(self, hidden=192):
         super().__init__()
+        self.hidden = int(hidden)
         self.state = nn.Sequential(nn.Linear(STATE_SIZE, hidden), nn.ReLU(),
                                    nn.Linear(hidden, hidden), nn.ReLU())
         self.act = nn.Sequential(nn.Linear(ACTION_SIZE, 64), nn.ReLU())

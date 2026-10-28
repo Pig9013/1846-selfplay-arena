@@ -54,6 +54,8 @@ def main():
     if base.is_file():
         try:
             state = torch.load(base, map_location="cpu", weights_only=True)
+            hidden = int(state.get("hidden") or state["model"]["state.0.weight"].shape[0])
+            model = PolicyValueNet(hidden=hidden)
             model.load_state_dict(state["model"])
             print(f"loaded base {base} step={state.get('step')}")
         except Exception as exc:  # noqa: BLE001

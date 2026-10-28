@@ -458,7 +458,8 @@ def start_training(payload):
                "--minutes", str(minutes), "--seed", str(seed), "--train-every", "4",
                "--steps", "150", "--net-weight", "15", "--human-prior-weight", str(human_prior_weight),
                "--strategy-mode", "mixed", "--temperature", "1.5",
-               "--report-every", "1000", "--eval-every", "300", "--keep", "4000"]
+               "--report-every", "1000", "--eval-every", "300", "--keep", "4000",
+               "--buffer", "600"]
     if minutes == 0:
         command.append("--continuous")
     TRAIN_PROC = subprocess.Popen(command, cwd=ROOT, stdout=subprocess.DEVNULL,
@@ -616,6 +617,8 @@ class Handler(BaseHTTPRequestHandler):
                 return
             files = {"/": ("web/index.html", "text/html"), "/human.html": ("web/human.html", "text/html"),
                      "/app.js": ("web/app.js", "text/javascript"),
+                     "/human.js": ("web/human.js", "text/javascript"),
+                     "/human.css": ("web/human.css", "text/css"),
                      "/style.css": ("web/style.css", "text/css")}
             if path not in files:
                 return self.respond({"error": "找不到此页面。"}, 404)

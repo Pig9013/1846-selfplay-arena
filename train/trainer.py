@@ -197,5 +197,6 @@ def save_checkpoint(model, step, path):
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(".tmp")
-    torch.save({"model": model.state_dict(), "step": step}, tmp)
+    torch.save({"model": model.state_dict(), "step": step,
+                "hidden": int(getattr(model, "hidden", 192))}, tmp)
     tmp.replace(path)

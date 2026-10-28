@@ -36,7 +36,7 @@ STATS = {"requests": 0, "batches": 0, "max_batch": 0, "last_batch": 0}
 
 
 def maybe_reload():
-    global MTIME, STEP, LOADED
+    global MTIME, STEP, LOADED, MODEL
     try:
         mtime = CKPT.stat().st_mtime
     except FileNotFoundError:
@@ -45,6 +45,9 @@ def maybe_reload():
         return
     try:
         state = torch.load(CKPT, map_location="cpu", weights_only=True)
+        hidden = int(state.get("hidden") or state["model"]["state.0.weight"].shape[0])
+        if hidden != MODEL.hidden:
+            MODEL = PolicyValueNet(hidden=hidden).to(DEVICE)
         MODEL.load_state_dict(state["model"])
         MODEL.to(DEVICE)
         MODEL.eval()

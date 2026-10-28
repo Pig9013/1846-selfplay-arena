@@ -245,6 +245,8 @@ def load_model():
     if CKPT.exists():
         try:
             state = torch.load(CKPT, map_location="cpu", weights_only=True)
+            hidden = int(state.get("hidden") or state["model"]["state.0.weight"].shape[0])
+            model = PolicyValueNet(hidden=hidden)
             model.load_state_dict(state["model"])
             step = int(state.get("step", 0))
         except Exception:  # noqa: BLE001 - old 40-wide checkpoint is not loadable
@@ -368,7 +370,7 @@ def main():
     parser.add_argument("--eval-every", type=int, default=300)
     parser.add_argument("--report-every", type=int, default=1000)
     parser.add_argument("--keep", type=int, default=4000)
-    parser.add_argument("--buffer", type=int, default=1200)
+    parser.add_argument("--buffer", type=int, default=600)
     parser.add_argument("--continuous", action="store_true", help="run until stopped")
     args = parser.parse_args()
     # Do not silently reuse an old seed range: that overwrote existing games and

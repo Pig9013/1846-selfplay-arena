@@ -12,8 +12,18 @@ module Arena1846
 
   # The upstream Ruby path walker validates individual routes. Search combinations
   # here because the site's combination optimizer is JavaScript, not native Ruby.
+  ROUTE_CACHE = {}
+
   def self.routes(game, entity)
-    P1846.best_routes(game, entity)
+    # The UI and evaluation call candidates repeatedly for the same decision.
+    # route search is CPU-expensive; key by action id and company.
+    key = [game.object_id, game.current_action_id, entity.id]
+    cached = ROUTE_CACHE[key]
+    return cached if cached
+    result = P1846.best_routes(game, entity)
+    ROUTE_CACHE.shift if ROUTE_CACHE.size > 512
+    ROUTE_CACHE[key] = result
+    result
   end
 
   class Bot
