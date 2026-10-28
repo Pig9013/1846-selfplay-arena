@@ -20,8 +20,8 @@ Human-play prior and removal of the hard-coded Chicago rule.
   (`--human-prior-weight`, default 10, 0 disables) used by the heuristic.
   It is data-derived, not a rule; the neural policy can override it.
 - Generic **E/W completion** bonus: when a company already reaches one side,
-  joining the other side is rewarded; approaching the missing side gets a
-  smaller bonus. No Chicago special case.
+  joining the other side is rewarded (+55); the first side gets +14, and
+  approaching the missing side gets +2 per hex. No Chicago special case.
 
 ### Changed
 
@@ -38,6 +38,32 @@ Human-play prior and removal of the hard-coded Chicago rule.
   D6 upgraded in 98.7% of games (green 99.4%, brown 97.7%, grey 86.6%);
   all three Z cities in 94.1%; E/W in 98.1%; C5 in 98.7%.
 - The human prior files are generated from those games, not hand-written.
+
+### Current status (2026-10-28 14:58)
+
+- Latest analysis: `train/reports/logic-0318.md`, 316 usable games,
+  182,549 decisions, 0 degenerate games.
+- 96.8% green Chicago, 93.7% all three Z cities, 89.9% at least one C5,
+  35.8% E/W, 8.9% bankruptcy.
+- Top-1 acceptance 55.6%, mean rank 1.64, 93.5 track lays per game,
+  4,151 offboard connections and 0 “pointed at offboard but did not connect”.
+- Live training counter at the same time: 320 games, 95 train steps,
+  combined policy/value loss 1.4767, 0 degenerate games, 4 worker errors
+  retried.
+- Neural evaluation: only 2 games, 0 wins. This is not yet a meaningful
+  win-rate measurement; the report labels it 0% but the sample is tiny.
+
+### Known gaps (measured)
+
+- **E/W 35.8% vs 98.8% in 665 human games** — the largest behavioural gap.
+  The cause is company-level route planning, not a missing global bonus:
+  in a typical game IC runs only W while GT/ERIE/NYC/PRR/B&O run only E.
+- Chicago 96.8% is close to the human 99.4% but the report still flags >90%
+  as possibly over-concentrated; check whether it crowds out other offboards.
+- Mean 93.5 lays per game; the player who lays most averages rank 2.60,
+  worse than the 4-player random 2.50. The “lay if possible” tendency remains.
+- Bankruptcy 8.9% is above the human level; train-rush cash, emergency
+  issuance and dividend policy still need work.
 
 ## [1.1.0] - 2026-10-28
 
@@ -68,7 +94,8 @@ Continuous self-play, action-type/feature repair, and a Chicago/off-board-aware 
 - Tile scoring now depends on the **rotated** tile: joining an off-board is
   rewarded (+42 + 0.6 × revenue), pointing at an off-board without joining it
   is punished (−30). Chicago D6 upgrades get explicit green/brown/grey bonuses
-  and the C5 link bonus.
+  and the C5 link bonus. **These Chicago-specific weights were removed again
+  in 1.2.0**; 1.1 is an intermediate release.
 - Heuristic weights: C&WI 38, MS 44; Chicago token +58; reserved/teleport
   token candidates are generated for company-owned abilities.
 - Track-laying base score cut from 10 to 2 with a higher cost charge and a

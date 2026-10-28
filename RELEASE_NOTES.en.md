@@ -1,0 +1,306 @@
+# 1846 Self-Play Arena 1.2.0 — Release Notes
+
+> Released: 2026-10-28  
+> Baseline: **v1.0.0** (previous GitHub release)  
+> Intermediate: **v1.1.0** (continuous self-play and neural repair)  
+> Reconstructed from the 2026-10-28 development sessions, commits, the latest 316-game self-play sample and 665 human games — not from a single conversation.
+
+---
+
+## 0. In one sentence
+
+v1.0.0 answered “can it play a complete game by the rules, and can real logs validate the rules?” v1.2.0 answers “can it run continuously, produce valid samples, learn from human games, and explain itself every 1000 games?”
+
+The old blocker was not merely “four games at a time”. The neural policy had collapsed into **passing forever**: running 255 games produced almost nothing but degenerate samples. v1.2.0 fixes the loop first, then improves the policy.
+
+---
+
+## 1. What changed, at a glance
+
+| Dimension | v1.0.0 (old) | v1.2.0 (new) |
+| --- | --- | --- |
+| Self-play | Web panel defaulted to 4 workers × 30 min; batches of 3–4 games; orchestrator exited after 200 games | 6 workers, `--minutes 0` by default; start/stop from the web UI; one line per game in `train/games.jsonl`; globally unique game indices |
+| Sample health | 255 old games, almost all pass-only, no corps, no track | Latest snapshot: **316 usable games, 0 degenerate, 182,549 decisions**; old/degenerate samples filtered |
+| Action features | 40-wide; all 14 action-type bits were zero | 48-wide; action-type one-hot is live; `feature_version=2`; offboard links, rotation-aware connectivity, Chicago gateway features |
+| Network blend | Raw logits × 60 dominated the heuristic and produced a “pass forever” local optimum | Per-decision standardisation (mean 0, std 1, clamp ±3) at weight 15; softmax temperature 1.5, 5% uniform exploration; pass-loop guard |
+| Track scoring | Rotation ignored; engine connectivity arrays treated as hashes; C&WI free Chicago token never generated; old-city token lost on upgrade | `p1846/connectivity.rb` scores the **rotated** tile; connecting an offboard `+42 + 0.6×revenue`, pointing at one without connecting `−30`; special tokens and upgrade token mapping fixed |
+| Chicago | Only current city revenue; AI rarely touched it; v1.1 forced it with hard-coded bonuses | **All Chicago hard-coding removed**; Chicago emerges from generic revenue/connectivity plus a 665-game human frequency prior (weight 10, can be disabled) |
+| Human prior | None | 665 human 3–5 player games → `human_prior.json` + `human_playbook.md`; hex/tile, par, private, train and dividend frequencies become a soft prior |
+| East–West | No explicit E/W completion logic | Joining the other side when a company already has E or W: `+55`; first side `+14`; approaching the missing side `+2` per hex; no Chicago coupling |
+| Analysis | None | `logic-N.md` every 1000 games: action mix, top-1 acceptance, offboard/Chicago/Z-city, win correlations, AI vs 665 humans, next-fix list |
+| Local models | Only probed LM Studio on port 1234; showed “no model” otherwise; no `neural` seat in the UI | `GET /api/models` reports the local checkpoint, nnserver and LM Studio / Ollama / llama.cpp / vLLM / text-generation-webui; UI explains what actually drives play; `neural` seat added |
+| Rule audit | 95 logs, 69,494 route revenues, 99.99% match | Retained, not regressed |
+
+---
+
+## 2. What was actually wrong with 1.0.0
+
+These were code defects, not tuning issues. This is why “just run more games” would not have helped.
+
+### 2.1 The neural policy collapsed to “pass forever”
+
+The old blend multiplied raw network logits by 60 and added them to the heuristic. The network quickly found a local optimum: **passing never loses money immediately**. Games contained only passes — no par, no track — and the terminal reward had no useful gradient.
+
+The old `train/data` contained 255 games, almost all of this kind. The UI said “only four games and then it stops”; the deeper problem was that the games it did start were not worth learning from.
+
+### 2.2 Action-type features were always zero
+
+Candidates did not carry `type`, so all 14 action-type one-hot bits were zero. The network could not distinguish track-laying, train-buying, dividends and pass. The action vector was also 40-wide, with several padded feature slots.
+
+### 2.3 Track scoring could not see rotation
+
+Every rotation of a tile scored the same, so the bot picked one at random and often pointed the connection the wrong way. More subtly, this engine snapshot returns `tracker_available_hex` connectivity as arrays of edge numbers (e.g. `[0]`, `[3]`); the old code treated them as hashes and discarded every connected edge.
+
+That is exactly the observed behaviour: **the AI laid track enthusiastically but failed to connect before the offboard**.
+
+### 2.4 Chicago was undervalued, but not because a rule was missing
+
+Old `city_value` looked only at current city revenue. D6 in yellow is four $10 dead-end cities; upgraded to green it is four $40 cities connected to C5, with offboard revenue and E/W bonuses on top. The old score could not see those future earnings. C&WI’s free Chicago token was never generated because candidate generation looked only at corporations, not at the privates they owned.
+
+The old bot did not “disagree that Chicago is valuable”; its scoring function had no representation of **post-upgrade revenue** or **free station placement**.
+
+### 2.5 “Local model not detected” was a false problem
+
+The old page probed only LM Studio at `127.0.0.1:1234`. Self-play was actually driven by the project’s own `latest.pt` + nnserver + heuristic prior. With LM Studio closed, the UI reported “no model”, making it look as if no learning was happening.
+
+---
+
+## 3. v1.1.0 — make the loop valid
+
+v1.1.0 was not about strength. It was about producing valid samples continuously.
+
+### 3.1 Continuous self-play
+
+- `train/orchestrate.py` defaults to `--minutes 0` and runs until stopped; finite runs remain available.
+- 6 workers, globally unique game indices, no two workers writing the same `seed-game` file.
+- One line per game in `train/games.jsonl`; `train/analyze.py` every 1000 games.
+- Web panel defaults to 6 workers × 0 minutes; stop via `train/run.pid` stops the whole worker tree.
+- Arena batches accept `count=0` (run forever).
+
+### 3.2 Neural collapse repair
+
+- Candidates carry `type`; the 14 action-type bits work; action vectors are 48-wide.
+- Network scores are standardised per decision and added at weight 15, not raw logits × 60.
+- Sampling uses temperature 1.5 and 5% uniform exploration; a pass-loop guard aborts and retries games that only pass.
+- The trainer reads only `feature_version >= 2` and non-`degenerate` samples; old 40-wide samples are dropped.
+
+### 3.3 Track and offboard repair
+
+- New `p1846/connectivity.rb`: rotated network/offboard edges, same-path connectivity, through-edge count, upgrade gain, Chicago distance.
+- Scoring: connecting an offboard `+42 + 0.6×offboard revenue`; pointing at one without connecting `−30`.
+- Candidate generation handles both Hash and Array connectivity formats; special tokens owned by companies are generated; `city_map_for` maps old-city tokens onto the upgraded tile.
+- Track base score cut from 10 to 2, cost coefficient 0.42, dead-end penalty −10, so “pass and keep the treasury” is a real option.
+- Companies holding a 2/4 train in phases III/IV reserve cash for the next train, reducing forced bankruptcies.
+
+### 3.4 Local-model panel and neural seats
+
+- `GET /api/models` reports the `latest.pt` step, nnserver health, and external model endpoints.
+- The UI explains that no external LLM is needed; Ollama / llama.cpp are detection-only, LM Studio is the optional decision backend.
+- `neural` seats are available in the UI.
+
+### 3.5 Per-1000-game analysis
+
+`train/analyze.py` writes `logic-N.md` with:
+
+- action mix and per-phase structure;
+- top-1 acceptance, mean rank, prior entropy, first/second score gap;
+- Chicago, C5, Z-city, offboard coverage, rotation misses;
+- win correlations (descriptive only);
+- comparison with the previous report;
+- next-fix list;
+- from v1.2, an **AI vs 665 humans** table.
+
+### 3.6 v1.1 validation
+
+| Metric | 81-game report |
+| --- | ---: |
+| Usable games | 81 |
+| Decisions | 48,853 |
+| Degenerate games | 0 |
+| Green Chicago | 80/81 (98.8%) |
+| At least one C5 | 77/81 (95.1%) |
+| E/W bonus | 38/81 (46.9%) |
+| Offboard connections / misses | 1,113 / 0 |
+| Top-1 acceptance | 54.0% |
+| Mean rank | 1.74 |
+| Bankruptcy rate | 7.4% |
+| Speed | ~5.2 games/min |
+
+> v1.1 forced Chicago up with hard-coded bonuses in `policy.rb`: D6 +30/+55/+90/+125, C5 +40, Chicago station +58, home-to-Chicago distance. All of these were **removed in v1.2.0**. The note is kept here to explain why v1.1’s Chicago numbers looked high and why v1.2 changed approach.
+
+---
+
+## 4. v1.2.0 — take Chicago out of the rules
+
+### 4.1 A prior from 665 human games
+
+The user’s correction was direct: making money does not require Chicago; players discover that upgrading Chicago, connecting the Z cities and reaching E/W early is profitable. Hard-coding Chicago puts the conclusion into the scorer and prevents the AI from learning the “why”.
+
+v1.2.0 learns frequencies from human games instead:
+
+- `train/human_playbook.py` reads 665 3–5 player human games (4p 461, 5p 142, 3p 62) and writes:
+  - `train/human_playbook.md`: a Chinese summary of human play;
+  - `train/human_prior.json`: normalised frequency tables for phase/hex/tile, par prices, private prices, train and dividend choices.
+- `p1846/human_prior.rb` uses the table as a **soft prior** (default 10, `--human-prior-weight 0` disables). It is not a rule; the neural policy and generic revenue terms can override it.
+- The web training panel exposes the prior weight.
+
+Key human facts:
+
+| Metric | 665 human games |
+| --- | ---: |
+| Green Chicago | 661/665 (99.4%) |
+| Brown Chicago | 650/665 (97.7%) |
+| Grey Chicago | 576/665 (86.6%) |
+| All three Z cities | 626/665 (94.1%) |
+| At least one C5 | 661/665 (99.4%) |
+| At least one E/W | 657/665 (98.8%) |
+| First E/W | phase II 320, III 280, IV 57 |
+
+Humans do these actions almost every game. The reason is the **post-upgrade revenue account**, not a rule. The AI should learn when, with whose money, and in what order — not be told “Chicago is mandatory”.
+
+### 4.2 Remove the Chicago hard-coding
+
+v1.2.0 deletes from `policy.rb`:
+
+- D6 upgrade +30 / green +55 / brown +90 / grey +125;
+- C5 connection +40;
+- Chicago station +58;
+- home-to-Chicago distance bonus.
+
+Chicago now appears only through:
+
+1. **Generic revenue**: green Chicago is four $40 cities, city revenue ×0.7;
+2. **Generic connectivity**: connecting C5, the W offboard, earns its offboard revenue;
+3. **Human frequency prior**: D6 appears often in phases II/III, so it gets a small weight.
+
+### 4.3 Generic E/W completion
+
+Added, not tied to Chicago:
+
+- a company already on E or W that joins the other side: `+55`;
+- first connection to either side: `+14`;
+- approaching the missing side: `+2` per hex.
+
+This is a generic incentive for the E/W bonus. Whether it produces company-level cross-region routes is the next thing to validate.
+
+### 4.4 Latest 316 games: AI vs humans
+
+From `train/reports/logic-0318.md` (2026-10-28 14:58; 316 usable games, 182,549 decisions, 0 degenerate).
+
+| Metric | v1.0.0 | v1.1.0 (81) | v1.2.0 (316) | Humans (665) |
+| --- | ---: | ---: | ---: | ---: |
+| Usable games | 255 (mostly degenerate) | 81 | 316 | 665 |
+| Decisions | — | 48,853 | 182,549 | — |
+| Degenerate games | most of 255 | 0 | 0 | — |
+| Green Chicago | rare | 98.8% | 96.8% | 99.4% |
+| All three Z cities | — | — | 93.7% | 94.1% |
+| At least one C5 | — | 95.1% | 89.9% | 99.4% |
+| E/W bonus | — | 46.9% | **35.8%** | **98.8%** |
+| Offboard connections / misses | — | 1,113 / 0 | 4,151 / 0 | — |
+| Top-1 acceptance | — | 54.0% | 55.6% | — |
+| Mean rank | — | 1.74 | 1.64 | — |
+| Mean track lays | — | 97.8 | 93.5 | — |
+| Bankruptcy rate | — | 7.4% | 8.9% | — |
+
+How to read this:
+
+- **E/W 35.8% is the largest behavioural gap.** v1.1’s 46.9% came from an 81-game sample while Chicago/C5 hard-coding was still present; after removing the hard-coding and expanding to 316 games, the real gap is 35.8%. Small samples mislead: an early 23-game v1.2 report showed 52.2%, which fell to 35.8% at 316 games.
+- **Green Chicago 96.8% is already close to the human 99.4%**, but the report still flags “>90%” for observation: check that it is not crowding out other offboard routes.
+- **Z cities 93.7% vs human 94.1%** is direct evidence that the human prior works.
+- **C5 89.9% vs human 99.4%** means about one game in ten never connects Chicago to the W side; this shares a cause with the E/W gap.
+- **Bankruptcy 8.9%** is slightly above v1.1’s 7.4%; the samples differ, so this is not proof of regression, but it remains on the watch list.
+
+### 4.5 Training signal and the current network
+
+- Per-game z-scores from final assets; advantage-weighted policy updates plus heuristic-prior distillation; value regression to z.
+- Latest checkpoint: step 95, combined policy/value loss 1.4767.
+- **Only 2 evaluation games, 0 wins.** That is not enough to judge the network; the 0% in the report is those two games, not a conclusion that the network is worse than the heuristic.
+- The network is still small: 128 state features, 48 action features. No LLM fine-tuning and no MCTS.
+
+---
+
+## 5. What 1.2.0 still does not solve
+
+1. **E/W 35.8% vs human 98.8%.** The problem is company-level route planning, not ignorance of the E/W bonus. In a typical game IC runs only W while GT/ERIE/NYC/PRR/B&O run only E; no company spans both. Humans concentrate a cross-region line in GT/NYC/IC/B&O. The next step is company-level E/W planning, not another global bonus.
+2. **Chicago may be over-concentrated at 96.8%.** The report flags >90%; check whether it crowds out other offboards.
+3. **Track sprawl remains.** Mean 93.5 lays per game; the player who lays most still averages rank 2.60 vs the 4-player random 2.50. The “lay if possible” tendency is still there.
+4. **Bankruptcy 8.9%** is above the human level; train-rush cash, emergency issuance and dividend policy still need work.
+5. **Neural evaluation is insufficient.** Two games cannot support any claim of superiority over the heuristic or humans.
+6. **No MCTS.** Engine states cannot be cloned cheaply; candidate ranking + prior distillation + advantage weighting replace tree search.
+7. **Scope**: standard 1846, 3–5 players, no optional rules; candidates do not cover every private-company ability or train trade.
+
+---
+
+## 6. Upgrading and running
+
+### 6.1 From 1.0.0
+
+1. Pull `v1.2.0` (or `main`).
+2. Keep the sibling `18xx-master` rules engine; this repository still does not vendor it.
+3. Old 40-wide samples in `train/data` are filtered automatically. Clearing old samples is recommended; the trainer only reads `feature_version >= 2`.
+4. Do not reuse a checkpoint trained on 40-wide action features; let `train/orchestrate.py` initialise and train a new one.
+
+### 6.2 Continuous self-play
+
+```bat
+python train\orchestrate.py --workers 6 --minutes 0 --train-every 4 --steps 200 --eval-every 300 --report-every 1000
+```
+
+- `--minutes 0`: run until stopped.
+- Web panel: 6 workers, 0 minutes, human-prior weight 10 by default.
+- Stop: the web “stop” button, or close the training window.
+- `logic-N.md` is written every 1000 games; “generate analysis” produces one on demand.
+
+### 6.3 Single game / spectating
+
+```bat
+启动平台.cmd
+```
+
+Open `http://127.0.0.1:1846`. Seats can use heuristic or `neural`; “local model detection” shows the checkpoint, nnserver and external endpoints.
+
+### 6.4 Reproducing the numbers
+
+```bat
+python train\analyze.py
+python verify_all.py runs
+python audit\log_audit.py
+```
+
+- `analyze.py` reads `train/data` and writes the current `logic-N.md`;
+- `verify_all.py` replays games and checks revenue/cash conservation;
+- `log_audit.py` recomputes 69,494 route revenues from 95 real logs.
+
+---
+
+## 7. Data provenance and boundaries
+
+- **Self-play samples**: produced by this project’s bots; 316 usable games in the latest snapshot, kept in `train/data/` and not shipped (size).
+- **Human corpus**: 665 public 18xx.games games parsed locally from `_work/1846_full.json`; only the aggregated `human_prior.json` and `human_playbook.md` are in the repository. Raw games are not included.
+- **Audit logs**: 95 18xx.games text logs; only the auditor, tile catalogue and mismatch record are in the repository.
+- **Rules engine**: `tobymao/18xx` (MIT), sibling `18xx-master`, not vendored.
+- **1846 copyright**: designed by Thomas Lehmann, published by GMT Games; no rulebook, art or official components are included.
+
+---
+
+## 8. Version and files
+
+- Version: `1.2.0`
+- Baseline: `v1.0.0`
+- New files:
+  - `p1846/connectivity.rb`
+  - `p1846/human_prior.rb`
+  - `train/analyze.py`
+  - `train/human_playbook.py`
+  - `train/human_playbook.md`
+  - `train/human_prior.json`
+  - `train/logic_changelog.json`
+- Main modified files:
+  - `arena.rb`, `p1846/policy.rb`, `p1846/model.rb`, `p1846/selfplay.rb`
+  - `server.py`, `train/orchestrate.py`, `train/trainer.py`, `train/nnserver.py`
+  - `web/app.js`, `web/index.html`, `web/style.css`
+- Full per-version changes: [CHANGELOG.md](CHANGELOG.md).
+
+---
+
+*Compiled by the maintainer and DeepSeek Harness from the 2026-10-28 development sessions, the code, the 316-game self-play sample and the 665-game human corpus. Every percentage includes its denominator; small samples are labelled as such.*

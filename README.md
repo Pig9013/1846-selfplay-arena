@@ -1,193 +1,186 @@
-# 1846 Self-Play Arena · 1846 自战实验室
+[中文](README.zh-CN.md) · **English** · [Français](README.fr.md) · [日本語](README.ja.md) · [Русский](README.ru.md)
 
-一个在本地运行的 **1846: The Race for the Midwest** 自战 / 自学习平台：用 18xx.games 的开源规则引擎执行规则，提供规则感知的机器人、神经网络自战训练回路、可回放的网页观战界面，以及一套用真实对局日志校验规则数值的审计工具。
+# 1846 Self-Play Arena · 1846 Self-Play Lab
+
+A local **1846: The Race for the Midwest** self-play and self-learning platform: the open-source 18xx.games rules engine executes the rules, with rules-aware bots, a neural-network self-play training loop, a replayable web spectating interface, and an audit toolset that checks rule values against real game logs.
 
 [![verify](https://github.com/Pig9013/1846-selfplay-arena/actions/workflows/verify.yml/badge.svg)](https://github.com/Pig9013/1846-selfplay-arena/actions/workflows/verify.yml)
 [![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-**版本 1.2.0** · Windows · 离线运行 · 不依赖网站账号和云端模型
+**Version 1.2.0** · Windows · runs offline · no site account or cloud model required
+
+> **What changed from 1.0.0**: continuous self-play with 316 usable games, 48-wide action features and bounded neural residuals, rotation-aware track/offboard scoring, a 665-game human prior replacing the hard-coded Chicago rule, and per-1000-game analysis. Full comparison: [RELEASE_NOTES.en.md](RELEASE_NOTES.en.md).
 
 ---
 
-## 这个项目解决什么问题
+## What this project solves
 
-18xx 的规则细节（地形费用、外域收入随时代变化、东西向奖励、Z/芝加哥专用瓦、车站阻挡、瓦片库存）在自制 AI 里极容易做错。这个项目把「规则」交给经过网站实战检验的引擎，把「决策」留给自己，并且用**真实对局日志**反查规则实现是否正确：
+The fine details of 18xx rules (terrain costs, offboard revenue changing by phase, east–west bonuses, Z/Chicago-specific tiles, station blocking, tile supply) are very easy to get wrong in a home-grown AI. This project hands the “rules” to an engine battle-tested in real play on the site, keeps the “decisions” for itself, and checks the rule implementation against **real game logs**:
 
-- **规则执行**：`18xx-master`（tobymao/18xx，MIT）作为唯一裁判；机器人只生成候选，最终由引擎校验。
-- **真实对局审计**：`audit/` 从引擎导出瓦片目录，重放 95 份 18xx.games 日志的铺轨/时代/奖励分配，独立重算 **69,494 条线路收入**，与网站记录一致率 **99.99%**。
-- **自学习回路**：KataGo 式的最小实现——多进程持续自战采样 → 策略/价值网络训练 → 热加载新模型 → 对启发式基线评估胜率；每 1000 局自动生成一份「行动逻辑分析」。
-- **可观察**：网页实时显示版图、成本、外域数值、奖励归属、瓦片库存、每回合铺轨/升级槽位。
+- **Rule execution**: `18xx-master` (tobymao/18xx, MIT) is the only judge; the bots only generate candidates, and the engine validates them.
+- **Real-game audit**: `audit/` exports the tile catalog from the engine, replays track laying, phases and bonus allocation from 95 18xx.games logs, and independently recomputes **69,494 route revenues**, agreeing with the site records **99.99%** of the time.
+- **Self-learning loop**: a minimal KataGo-style implementation — multi-process continuous self-play sampling → policy/value network training → hot-reloading the new model → win-rate evaluation against heuristic baselines; a new action-logic analysis every 1000 games.
+- **Observable**: the web page shows the board, costs, offboard values, bonus attribution, tile supply and per-turn track/upgrade slots in real time.
 
-> 1846 是 Thomas Lehmann 设计、GMT Games 出版的作品。本仓库**不包含**规则书、美术素材或任何官方文件；规则引擎是第三方 MIT 代码，自战数据由本项目的机器人产生。
+> 1846 is designed by Thomas Lehmann and published by GMT Games. This repository **does not include** the rulebook, art assets or any official files; the rules engine is third-party MIT code, and the self-play data is produced by this project's bots.
 
-## 主要特性
+## Main features
 
-| 模块 | 说明 |
+| Module | Description |
 | --- | --- |
-| 规则数值 | 铺轨费用 = max($20, 印值)，跨河/山/隧道在**首次接通**时付边费；Z 瓦 / 芝加哥瓦 / 普通瓦分离；瓦片数量受限；车站满员后阻挡通行 |
-| 外域与东西向 | 外域收入按时代（黄/棕）取值；E→E 禁止、W→W 允许、Holland 与 Louisville 中立；E/W 奖励取两端外域图标数值之和 |
-| 私营公司 | Boomtown / Meat Packing / Steamboat 按**格子**与**拥有者**生效（码头 Wheeling/Holland +$40，其余 +$20），分配与归属可见 |
-| 机器人 | 规则感知候选生成（连接检查、瓦片库存、颜色/保留轨道、股份与列车限制），启发式打分，可叠加神经网络策略 |
-| 自学习 | `p1846/selfplay.rb` 采样 → `train/nnserver.py` 推理 → `train/trainer.py` 训练 → `train/orchestrate.py` 持续编排 → `train/analyze.py` 每 1000 局分析 |
-| 人类先验 | `train/human_playbook.py` 从 665 局人类对局生成 `human_playbook.md` 与 `human_prior.json`；`p1846/human_prior.rb` 作为软先验，不是规则 |
-| 观战 | 本地网页：版图、回放、玩家资产、公司表、决策理由、训练面板 |
-| 审计 | `audit/log_audit.py` 用真实日志重算线路收入；`verify_game.rb` 逐行动重放并核对现金守恒 |
-| 资源占用 | 子进程低于正常优先级；默认 6 个自战进程；训练只用 2 个 torch 线程 |
+| Rule values | Track cost = max($20, printed value); river/mountain/tunnel edge costs are paid on **first connection**; Z tiles / Chicago tiles / plain tiles are kept separate; tile counts are limited; a full station blocks passage |
+| Offboard and east–west | Offboard revenue takes its value from the phase (yellow/brown); E→E is forbidden, W→W is allowed, Holland and Louisville are neutral; the E/W bonus is the sum of the offboard icon values at both ends |
+| Private companies | Boomtown / Meat Packing / Steamboat act per **hex** and per **owner** (Wheeling/Holland ports +$40, the rest +$20); allocation and attribution are visible |
+| Bots | Rules-aware candidate generation (connection checks, tile stock, colour/preserved-track checks, share and train limits), heuristic scoring, optional neural policy overlay |
+| Self-learning | `p1846/selfplay.rb` sampling → `train/nnserver.py` inference → `train/trainer.py` training → `train/orchestrate.py` continuous orchestration → `train/analyze.py` per-1000-game analysis |
+| Human prior | `train/human_playbook.py` builds `human_playbook.md` and `human_prior.json` from 665 human games; `p1846/human_prior.rb` uses them as a soft prior, not a rule |
+| Spectating | Local web UI: board, replay, player assets, company table, decision reasons and a training panel |
+| Audit | `audit/log_audit.py` recomputes route revenues from real logs; `verify_game.rb` replays every action and checks cash conservation |
+| Resources | Child processes run below normal priority; 6 self-play workers by default; training uses only 2 torch threads |
 
-## 快速开始
+## Quick start
 
-### 依赖
+### Dependencies
 
-- Windows 10/11，Python 3.12（仅标准库即可运行平台；训练需要 PyTorch）
-- 本项目自带 Ruby 3.4.9 便携运行时于 `runtime/`（不修改系统 Ruby）
-- **18xx 规则引擎**放在本目录的**同级**：`../18xx-master`（克隆 `https://github.com/tobymao/18xx`，或使用你已经有的快照）
+- Windows 10/11, Python 3.12 (the standard library is enough to run the platform; training needs PyTorch)
+- The project bundles a portable Ruby 3.4.9 runtime in `runtime/` (the system Ruby is not modified)
+- The **18xx rules engine** goes **next to** this directory: `../18xx-master` (clone `https://github.com/tobymao/18xx`, or use an existing snapshot)
 
 ```
-父目录/
-├── 1846自战平台/      ← 本仓库
+parent/
+├── 1846-selfplay-arena/   ← this repository
 │   ├── server.py
 │   ├── arena.rb
 │   ├── p1846/
 │   ├── train/
 │   ├── audit/
 │   ├── web/
-│   └── runtime/        ← Ruby 运行时（发布包自带，仓库中忽略）
-└── 18xx-master/        ← 规则引擎（MIT）
+│   └── runtime/           ← Ruby runtime (bundled with the release, ignored in git)
+└── 18xx-master/           ← rules engine (MIT)
 ```
 
-### 运行平台
+### Run the platform
 
 ```bat
 启动平台.cmd
 ```
 
-浏览器打开 `http://127.0.0.1:1846`，选择人数与席位策略，开始自战。也可以：
+Open `http://127.0.0.1:1846`, choose the player count and seat strategies, and start a self-play game. You can also run:
 
 ```bat
 python server.py --no-browser --port 1846
 ```
 
-### 跑自学习
+### Run self-learning
 
 ```bat
 python train\orchestrate.py --workers 6 --minutes 0 --train-every 4 --steps 200 --eval-every 300 --report-every 1000
 ```
 
-`--minutes 0`（默认）表示**一直跑，直到你停止**。也可以双击 `启动训练.cmd`。模型写入 `train/checkpoints/latest.pt`，样本写入 `train/data/`，每 1000 局的分析写入 `train/reports/logic-N.md`；网页「自学习训练」面板可启停、生成分析。
+`--minutes 0` (the default) means **run until you stop it**. You can also double-click `启动训练.cmd`. The model is written to `train/checkpoints/latest.pt`, samples to `train/data/`, and the per-1000-game analysis to `train/reports/logic-N.md`; the web training panel can start/stop training and generate an analysis on demand.
 
-### 校验规则
+### Validate the rules
 
 ```bat
-ruby audit\export_catalog.rb     :: 从引擎导出瓦片目录
-python audit\log_audit.py        :: 重算真实日志的线路收入并比对
-python verify_all.py runs        :: 逐局重放并核对收入与现金守恒
-python tests\\test_audit.py       :: 审计器单元测试（CI 也跑这个）
+ruby audit\export_catalog.rb     :: export the tile catalogue from the engine
+python audit\log_audit.py        :: recompute route revenues from real logs
+python verify_all.py runs        :: replay games and check revenue/cash conservation
+python tests\test_audit.py       :: auditor unit test (also run by CI)
 ```
 
-## 仓库结构
+## Repository structure
 
 ```
-server.py              本机 HTTP 服务、对局/训练管理、静态页面
-arena.rb               单局自战循环：候选生成 → 打分/网络 → 引擎执行
-engine_boot.rb         原生 Ruby 加载适配（跳过仅供浏览器的 JS 段）
-verify_game.rb         独立复核一局（逐行动重放、收入重算、现金守恒）
-verify_all.py          批量复核
-p1846/board.rb         版图与规则数值导出（成本、边费、外域、标签、库存、奖励归属）
-p1846/actions.rb       合法候选生成 + 线路组合搜索（上游 AutoRouter）
-p1846/policy.rb        启发式打分
-p1846/model.rb         神经网络特征编码（128 维状态 / 48 维动作）
-p1846/connectivity.rb  旋转连通 / 外域连接 / E/W 完成分析
-p1846/human_prior.rb   人类对局频率先验（软权重，可关闭）
-p1846/selfplay.rb      自战采样进程（写出训练样本）
-train/net.py           策略/价值网络
-train/nnserver.py      本机推理服务（热加载检查点）
-train/trainer.py       训练循环（优势加权模仿 + 价值回归）
-train/analyze.py       每 1000 局行动逻辑分析报告
-train/human_playbook.py 人类对局玩法总结 + 先验生成
-train/orchestrate.py   多进程自战 + 训练 + 评估编排
-audit/                 真实对局日志审计工具与瓦片目录
-web/                   中文观战与训练面板
-examples/              自战样例（对局 JSON、引擎日志、训练样本）
+RELEASE_NOTES.md        full 1.2.0 vs 1.0.0 comparison (Chinese)
+RELEASE_NOTES.en.md     English release notes
+server.py               local HTTP service, game/training management, static UI
+arena.rb                single-game self-play loop: candidates → score/net → engine
+engine_boot.rb          native Ruby loading adapter (skips browser-only JS)
+verify_game.rb          independent replay of one game (revenue, cash conservation)
+verify_all.py           batch replay verifier
+p1846/board.rb          board and rule-value export (costs, edges, offboards, labels, stock, bonus attribution)
+p1846/actions.rb        legal candidate generation + route combination search (upstream AutoRouter)
+p1846/policy.rb         heuristic scoring
+p1846/model.rb          neural feature encoding (128 state / 48 action)
+p1846/connectivity.rb   rotation-aware connectivity / offboard links / E-W completion analysis
+p1846/human_prior.rb    human-game frequency prior (soft weight, can be disabled)
+p1846/selfplay.rb       self-play sampling process (writes training samples)
+train/net.py            policy/value network
+train/nnserver.py       local inference service (hot-reloads checkpoints)
+train/trainer.py        training loop (advantage-weighted imitation + value regression)
+train/analyze.py        per-1000-game action-logic report
+train/human_playbook.py human play summary + prior generation
+train/orchestrate.py    multi-process self-play + training + evaluation orchestration
+audit/                  real-log audit tools and tile catalogue
+web/                    Chinese spectating and training UI
+examples/               sample games (JSON, engine logs, training samples)
 ```
 
-## 数据格式
+## Data formats
 
-### 对局（`examples/selfplay/*/game.json`）
+### Games (`examples/selfplay/*/game.json`)
 
-18xx 引擎格式：玩家、种子、完整 `raw_actions`。可直接用 `verify_game.rb` 重放：
+18xx engine format: players, seed, complete `raw_actions`. Replay with `verify_game.rb`:
 
 ```bat
 ruby verify_game.rb "examples\selfplay\4p-seed606\game.json"
 ```
 
-### 训练样本（`examples/training/*.jsonl.gz`）
+### Training samples (`examples/training/*.jsonl.gz`)
 
-每局一个 JSONL，逐行：
+One JSONL per game, one line per record:
 
 ```json
-{"type":"decision","actor":"1","state":[128 个浮点],"actions":[[48 个浮点],...],"chosen":0,"prior":[...]}
+{"type":"decision","actor":"1","state":[128 floats],"actions":[[48 floats],...],"chosen":0,"prior":[...]}
 {"type":"result","scores":{"1":5506,"2":0,...},"z":{"1":0.98,...}}
 ```
 
-- `state`：局面特征（时代、银行、公司现金/列车/股价、玩家资产、版图统计）
-- `actions`：该决策点最多 12 个合法候选的动作特征
-- `chosen`：实际执行的候选下标
-- `prior`：启发式打分（用于蒸馏）
-- `z`：按最终资产标准化的名次收益（均值 0、标准差 1）
+- `state`: position features (phase, bank, company cash/trains/share price, player assets, board statistics)
+- `actions`: up to 12 legal candidate actions at this decision point
+- `chosen`: index of the executed candidate
+- `prior`: heuristic score (used for distillation)
+- `z`: rank return normalised by final assets (mean 0, standard deviation 1)
 
-## 规则校验结果
+## Rule audit results
 
-95 份日志、69,494 条线路收入重算，与网站一致率 **99.99%**（5 条差异来自审计器自身的板面跟踪缺口）。审计过程中确认并修正了两条容易错的实现：
+95 logs and 69,494 route revenues recomputed, **99.99%** agreement with the site (the 5 differences come from the auditor's own board-tracking gaps). The audit confirmed and fixed two easy-to-miss rules:
 
-- **Mail Contract** 按**经过**的站点计费（含 N/M 列车跳过、不计收入的站）；
-- **港口图标是粘性的**：城市升级后港口图标保留到 IV 时代移除奖励事件。
+- **Mail Contract** pays for **visited** stops (including stops an N/M train passes through without counting them);
+- **Port icons are sticky**: after a city upgrade the port icon remains until the phase-IV bonus-removal event.
 
-铺轨费用的真实分布也与规则 6.48 一致：H16 首铺 $40 / 升级 $20；B16 不跨山边 $20、跨过 $60；I11 跨河 $60；F18 出现 20/40/60/80 组合。
+The observed track-cost distribution also matches rule 6.48: H16 first lay $40 / upgrade $20; B16 $20 without crossing the mountain edge, $60 across it; I11 $60 across the river; F18 shows the 20/40/60/80 combination.
 
-## 自学习现状（1.1）
+## Self-learning status (1.2)
 
-- **持续自战**：6 进程默认一直开局，不点停止不会自己停；每局写入 `train/data/`，
-  每 1000 局自动写一份 `train/reports/logic-N.md`。
-- **人类先验（1.2）**：从 665 局 18xx.games 人类对局统计开局/铺轨/买车/分红频率，
-  生成 `train/human_playbook.md` 与 `train/human_prior.json`；策略只把它当软先验
-  （默认 10 分，可设 0 关闭），芝加哥不再写成硬规则。
-- **本地模型**：自战由项目自带的神经网络检查点（`latest.pt`）+ 启发式先验驱动。
-  LM Studio 是可选的第三方决策器；Ollama / llama.cpp 等只做检测提示，当前不接入决策。
-  不运行任何外部模型也能自战和训练。网页「本地模型检测」会显示检查点、推理服务与外部模型状态。
-- **特征修复（v1.1）**：动作类型位不再全为 0，动作向量 48 维；新增外域连接、
-  旋转连通、芝加哥门户等特征；旧版 40 维/退化样本会被训练器过滤。
-- **策略修复**：铺轨评分看旋转后的真实连通；芝加哥 D6 升级与 C5 连接有显式权重；
-  C&WI 的免费芝加哥站会被实际使用。样本中芝加哥升级/C5 线路已从「很少」变为常见。
-- **尺度修复**：网络分数按决策标准化后以 15 分权重叠加，采样带 5% 均匀探索，
-  避免早期「永远 pass」把整局锁死。
-- 没有 MCTS：引擎局面无法廉价克隆，当前用「候选排序 + 先验蒸馏 + 优势加权」代替树搜索。
-- 胜率仍然只是参考：小样本、同批自战、4 人局随机基线 25%，**不代表已经超过人类**。
+Latest snapshot (2026-10-28 14:58, `train/reports/logic-0318.md`): **316 usable games, 182,549 decisions, 0 degenerate**; 96.8% green Chicago, 93.7% all three Z cities, 89.9% at least one C5, 35.8% E/W, 8.9% bankruptcy.
 
-## 已知限制
+- **Continuous self-play**: 6 workers run until stopped; each game writes `train/games.jsonl` and `train/data/`; a `train/reports/logic-N.md` report is written every 1000 games.
+- **Human prior (1.2)**: frequencies from 665 18xx.games human games produce `train/human_playbook.md` and `train/human_prior.json`. The policy treats them as a soft prior (default 10, 0 disables).
+- **Chicago (1.2)**: the v1.1 hard-coding (D6 +30/+55/+90/+125, C5 +40, Chicago station +58, home-to-Chicago distance) is gone. Chicago now appears only through generic revenue, connectivity and the human frequency prior; the 96.8% green-Chicago rate is learned, not written into the scorer.
+- **Feature repair (v1.1)**: action-type bits are no longer zero; action vectors are 48-wide; offboard links, rotation-aware connectivity and Chicago gateway features were added; old 40-wide and degenerate samples are filtered.
+- **Track repair (v1.1)**: scoring uses the rotated tile; connecting an offboard gives `+42 + 0.6×revenue`, pointing at one without connecting `−30`; C&WI's free Chicago token is actually used.
+- **E/W completion (1.2)**: joining the other side gives `+55`, the first side `+14`, approaching the missing side `+2` per hex; no Chicago coupling.
+- **Scale repair**: network scores are standardised per decision and added at weight 15, with 5% uniform exploration, avoiding the old “pass forever” collapse.
+- **Local models**: self-play is driven by the project's `latest.pt` + heuristic prior. LM Studio is an optional third-party decision backend; Ollama / llama.cpp are detection-only. No external model is required. The “local model detection” panel shows the checkpoint, inference service and external endpoints.
+- **Largest gap**: E/W is only 35.8%, versus 98.8% in 665 human games. The cause is company-level route planning: in a typical game IC runs only W, while GT/ERIE/NYC/PRR/B&O run only E; no company spans both.
+- **No MCTS**: engine positions cannot be cloned cheaply, so candidate ranking + prior distillation + advantage weighting replace tree search.
+- **Win rate is not a conclusion**: only 2 evaluation games, 0 wins. The sample is too small to judge the network, let alone claim it beats humans.
 
-- 只支持标准 1846、3–5 人、无可选规则。
-- 机器人候选未覆盖全部特殊能力（部分私营公司铺轨、列车交易）。
-- 网页版图是数据驱动的简化绘图：数值、方位、邻接与规则一致，但不是官方美术。
-- 真实对局的完整行动序列无法从网站 API 取回（归档对局返回空 actions），本地日志又隐藏私营公司分配环节，因此审计采用「板面 + 收入重算」，不是整局重放。
+## Known limitations
 
-## 版本
+- Standard 1846 with 3–5 players only; no optional rules.
+- Bot candidates do not yet cover every private-company ability or train trading between corporations.
+- The web board is a data-driven schematic: values, orientation and adjacency match the rules, but it is not the official artwork.
+- The complete action sequence of real games cannot be fetched from the site API (archived games return empty actions), and local logs hide private-company allocation; the audit therefore uses “board + revenue recomputation”, not a full replay.
+- E/W completion and company-level cross-region planning remain the top behavioural gap; Chicago may be over-concentrated at 96.8%; bankruptcy is 8.9% in the latest sample.
 
-当前 **1.2.0**。变更见 [CHANGELOG.md](CHANGELOG.md)。路线图：补齐特殊能力候选、把铺轨槽位/库存/奖励归属纳入网络特征、加入更严格的对手池评估。
+## Version
 
-## English summary
+Current **1.2.0**. Full comparison with 1.0.0: [RELEASE_NOTES.en.md](RELEASE_NOTES.en.md); per-version changes: [CHANGELOG.md](CHANGELOG.md). Roadmap: complete special-ability candidates, add track slots/stock/bonus attribution to network features, evaluate against a stricter opponent pool, and solve company-level E/W planning first.
 
-A local, offline arena for **1846: The Race for the Midwest**. A sibling
-checkout of the MIT-licensed [tobymao/18xx](https://github.com/tobymao/18xx)
-engine judges every action; this project adds rules-aware candidate generation,
-a data-driven board/replay UI, a KataGo-style self-play training loop and a
-real-log rule auditor (95 logs, 69,494 route revenues recomputed, 99.99% match).
-Version 1.1.0. Sample games and compressed training samples live under
-`examples/` and in the release. The repository does not vendor the rules
-engine, the Ruby runtime, or any official 1846 assets.
+## License and notices
 
-## 许可与声明
-
-- 本仓库原创代码：MIT（见 [LICENSE](LICENSE)）。
-- 规则引擎：`tobymao/18xx`，MIT。
-- **1846: The Race for the Midwest** 设计 Thomas Lehmann，GMT Games 出版；本项目与其出版商无关，不包含规则书、地图美术或任何官方组件。
-- 自战数据由本项目的机器人产生，可自由用于研究。
+- Original code in this repository: MIT (see [LICENSE](LICENSE)).
+- Rules engine: `tobymao/18xx`, MIT.
+- **1846: The Race for the Midwest** is designed by Thomas Lehmann and published by GMT Games; this project is not affiliated with the publisher and does not include the rulebook, map art or any official component.
+- Self-play data is produced by this project's bots and may be used freely for research.
